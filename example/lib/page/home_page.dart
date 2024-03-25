@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:x509_cert_store/x509_cert_store.dart';
 import 'package:x509_cert_store/x509_cert_store_enum.dart';
@@ -21,9 +23,11 @@ class HomePage extends StatelessWidget {
               storeName: X509StoreName.root,
               certificateBase64: certificationBase64Str,
             );
-            print(rst.msg);
+            log(rst.msg);
             if (rst.msg == X509ErrorCode.alreadyExist.getString()) {
-              print("key is already exist");
+              log("key is already exist.");
+            } else if ((rst.msg == X509ErrorCode.canceled.getString())) {
+              log("user canceled add certification.");
             }
           },
           child: const Text("Add Certification"),

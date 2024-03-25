@@ -13,12 +13,15 @@ enum X509StoreName {
 }
 
 enum X509ErrorCode {
+  canceled,
   alreadyExist;
 
   String getString() {
     switch (this) {
       case X509ErrorCode.alreadyExist:
         return "2148081669";
+      case X509ErrorCode.canceled:
+        return "1223";
     }
   }
 }
