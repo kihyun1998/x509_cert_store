@@ -3,6 +3,8 @@ import 'dart:developer';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:x509_cert_store/x509_cert_store_enum.dart';
+import 'package:x509_cert_store/x509_cert_store_return_class.dart';
 
 import 'x509_cert_store_platform_interface.dart';
 
@@ -21,17 +23,23 @@ class MethodChannelX509CertStore extends X509CertStorePlatform {
   }
 
   @override
-  Future<bool?> addCertificate(String certificateBase64) async {
+  Future<X509ResValue> addCertificate(
+      {required X509StoreName storeName,
+      required String certificateBase64}) async {
     try {
       final certificateBytes = base64.decode(certificateBase64);
       final result = await methodChannel.invokeMethod<bool>(
         'addCertificate',
-        {'certificate': certificateBytes},
+        {
+          'storeName': storeName.getString(),
+          'certificate': certificateBytes,
+        },
       );
-      return result ?? false;
+
+      return X509ResValue(isOk: result ?? false, msg: "");
     } on PlatformException catch (e) {
       log("Failed to add certificate : ${e.message}.");
-      return false;
+      return X509ResValue(isOk: false, msg: "${e.message}");
     }
   }
 }

@@ -1,4 +1,6 @@
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
+import 'package:x509_cert_store/x509_cert_store_enum.dart';
+import 'package:x509_cert_store/x509_cert_store_return_class.dart';
 
 import 'x509_cert_store_method_channel.dart';
 
@@ -27,7 +29,8 @@ abstract class X509CertStorePlatform extends PlatformInterface {
     throw UnimplementedError('platformVersion() has not been implemented.');
   }
 
-  Future<bool?> addCertificate(String certificateBase64) {
+  Future<X509ResValue> addCertificate(
+      {required X509StoreName storeName, required String certificateBase64}) {
     throw UnimplementedError('platformVersion() has not been implemented.');
   }
 }

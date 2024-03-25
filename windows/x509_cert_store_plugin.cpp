@@ -75,13 +75,59 @@ void X509CertStorePlugin::HandleMethodCall(
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
   if(method_call.method_name().compare("addCertificate") == 0){
     const auto* arguments = std::get_if<flutter::EncodableMap>(method_call.arguments());
-    auto it = arguments->find(flutter::EncodableValue("certificate"));
 
-    if (it != arguments->end()) {
-      const auto* certificateData = std::get_if<std::vector<uint8_t>>(&it->second);
-      if (certificateData && AddCertificateToStore(*certificateData)) {
-        result->Success(flutter::EncodableValue(true));
-      } else {
+    if ((arguments->find(flutter::EncodableValue("storeName")) != arguments->end()) && 
+    (arguments->find(flutter::EncodableValue("certificate")) != arguments->end())) {
+
+      auto& storeNameValue = arguments->at(flutter::EncodableValue("storeName"));
+      auto& certificateValue = arguments->at(flutter::EncodableValue("certificate"));
+      if((std::holds_alternative<std::string>(storeNameValue)) && 
+      (std::holds_alternative<std::vector<uint8_t>>(certificateValue))){
+        auto storeNameData = std::get<std::string>(storeNameValue);
+        auto certificateData = std::get<std::vector<uint8_t>>(certificateValue);
+
+        HCERTSTORE hStore = CertOpenSystemStoreA(NULL, storeNameData.c_str());
+
+        if (!hStore) {
+          DWORD dwError = GetLastError();
+          std::stringstream ss;
+          ss << dwError;
+          result->Error("CERT_OPEN_FAILED", ss.str());
+        }
+
+        PCCERT_CONTEXT pCertContext = CertCreateCertificateContext(
+            X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
+            certificateData.data(),
+            static_cast<DWORD>(certificateData.size()));
+
+        if (!pCertContext) {
+            CertCloseStore(hStore, 0);
+            result->Error("CONTEXT_CREATE_FAILED","Failed to create a certificate context");
+        }
+
+        BOOL rst = CertAddCertificateContextToStore(
+            hStore,
+            pCertContext,
+            // CERT_STORE_ADD_REPLACE_EXISTING,
+            // CERT_STORE_ADD_NEWER,
+            CERT_STORE_ADD_NEW,
+            NULL
+        );
+
+        CertFreeCertificateContext(pCertContext);
+        CertCloseStore(hStore, 0);
+
+        if(!rst){
+          DWORD dwError = GetLastError();
+          std::stringstream ss;
+          ss << dwError;
+          result->Error("CERT_ADD_FAILED", ss.str());
+        }
+
+        result->Success(flutter::EncodableValue(true)); 
+
+      }
+      else {
         result->Error("CERT_ADD_FAILED", "Failed to add the certificate to the store");
       }
     } else {
