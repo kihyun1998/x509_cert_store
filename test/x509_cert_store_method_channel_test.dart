@@ -1,11 +1,10 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:x509_cert_store/x509_cert_store_method_channel.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  MethodChannelX509CertStore platform = MethodChannelX509CertStore();
+  // MethodChannelX509CertStore platform = MethodChannelX509CertStore();
   const MethodChannel channel =
       MethodChannel('io.github.kihyun1998/cert_installer');
 
@@ -25,8 +24,4 @@ void main() {
     // );
     expect(false, false);
   });
-
-  // test('getPlatformVersion', () async {
-  //   expect(await platform.getPlatformVersion(), '42');
-  // });
 }
