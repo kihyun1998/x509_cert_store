@@ -1,3 +1,9 @@
+## 0.9.2
+
+- Change README.md
+- Update Example.dart
+- export packges
+
 ## 0.9.1
 
 - Change README.md
