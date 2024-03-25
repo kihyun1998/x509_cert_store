@@ -19,35 +19,6 @@ using flutter::EncodableMap;
 using flutter::EncodableValue;
 
 namespace x509_cert_store {
-
-bool AddCertificateToStore(const std::vector<uint8_t>& certificate_der) {
-    HCERTSTORE hStore = CertOpenSystemStore(NULL, L"ROOT");
-    if (!hStore) {
-        return false; // Failed to open the certificate store
-    }
-
-    PCCERT_CONTEXT pCertContext = CertCreateCertificateContext(
-        X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
-        certificate_der.data(),
-        static_cast<DWORD>(certificate_der.size()));
-
-    if (!pCertContext) {
-        CertCloseStore(hStore, 0);
-        return false; // Failed to create a certificate context
-    }
-
-    BOOL result = CertAddCertificateContextToStore(
-        hStore,
-        pCertContext,
-        CERT_STORE_ADD_NEW,
-        NULL);
-
-    CertFreeCertificateContext(pCertContext);
-    CertCloseStore(hStore, 0);
-
-    return result ? true : false;
-}
-
 // static
 void X509CertStorePlugin::RegisterWithRegistrar(
     flutter::PluginRegistrarWindows *registrar) {
@@ -73,16 +44,24 @@ X509CertStorePlugin::~X509CertStorePlugin() {}
 void X509CertStorePlugin::HandleMethodCall(
     const flutter::MethodCall<flutter::EncodableValue> &method_call,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+  
+  // Check method channel's name
   if(method_call.method_name().compare("addCertificate") == 0){
     const auto* arguments = std::get_if<flutter::EncodableMap>(method_call.arguments());
 
+    // Check arguments are exist storeName & certificate
     if ((arguments->find(flutter::EncodableValue("storeName")) != arguments->end()) && 
     (arguments->find(flutter::EncodableValue("certificate")) != arguments->end())) {
 
+      
       auto& storeNameValue = arguments->at(flutter::EncodableValue("storeName"));
       auto& certificateValue = arguments->at(flutter::EncodableValue("certificate"));
+      
+      // Check arguments type's are correct
       if((std::holds_alternative<std::string>(storeNameValue)) && 
       (std::holds_alternative<std::vector<uint8_t>>(certificateValue))){
+
+        // If arguments type's are correct
         auto storeNameData = std::get<std::string>(storeNameValue);
         auto certificateData = std::get<std::vector<uint8_t>>(certificateValue);
 
