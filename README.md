@@ -1,6 +1,6 @@
 # x509_cert_store
 
-Hi 😎  
+Hi !
 A package that helps add certificates to the local certificate store using the flutter windows desktop app.
 
 MacOS and Linux versions will also be added in the future. I hope you have a lot of interest. If you tell me what additional functions you need, I will add them.
