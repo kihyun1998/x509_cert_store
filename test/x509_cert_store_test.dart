@@ -9,10 +9,11 @@ class MockX509CertStorePlatform
     with MockPlatformInterfaceMixin
     implements X509CertStorePlatform {
   @override
-  Future<X509ResValue> addCertificate(
-      {required X509StoreName storeName,
-      required String certificateBase64,
-      required X509AddType addType}) {
+  Future<X509ResValue> addCertificate({
+    required X509StoreName storeName,
+    required String certificateBase64,
+    required X509AddType addType,
+  }) {
     // TODO: implement addCertificate
     throw UnimplementedError();
   }
