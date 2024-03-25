@@ -16,9 +16,11 @@ class MethodChannelX509CertStore extends X509CertStorePlatform {
       const MethodChannel('io.github.kihyun1998/cert_installer');
 
   @override
-  Future<X509ResValue> addCertificate(
-      {required X509StoreName storeName,
-      required String certificateBase64}) async {
+  Future<X509ResValue> addCertificate({
+    required X509StoreName storeName,
+    required String certificateBase64,
+    required X509AddType addType,
+  }) async {
     try {
       final certificateBytes = base64.decode(certificateBase64);
       final result = await methodChannel.invokeMethod<bool>(
@@ -26,6 +28,7 @@ class MethodChannelX509CertStore extends X509CertStorePlatform {
         {
           'storeName': storeName.getString(),
           'certificate': certificateBytes,
+          'addType': addType.getCode(),
         },
       );
 

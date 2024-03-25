@@ -51,19 +51,23 @@ void X509CertStorePlugin::HandleMethodCall(
 
     // Check arguments are exist storeName & certificate
     if ((arguments->find(flutter::EncodableValue("storeName")) != arguments->end()) && 
-    (arguments->find(flutter::EncodableValue("certificate")) != arguments->end())) {
+    (arguments->find(flutter::EncodableValue("certificate")) != arguments->end()) &&
+    (arguments->find(flutter::EncodableValue("addType")) != arguments->end())) {
 
       
       auto& storeNameValue = arguments->at(flutter::EncodableValue("storeName"));
       auto& certificateValue = arguments->at(flutter::EncodableValue("certificate"));
+      auto& addTypeValue = arguments->at(flutter::EncodableValue("addType"));
       
       // Check arguments type's are correct
       if((std::holds_alternative<std::string>(storeNameValue)) && 
-      (std::holds_alternative<std::vector<uint8_t>>(certificateValue))){
+      (std::holds_alternative<std::vector<uint8_t>>(certificateValue)) &&
+      (std::holds_alternative<int>(addTypeValue))){
 
         // If arguments type's are correct
         auto storeNameData = std::get<std::string>(storeNameValue);
         auto certificateData = std::get<std::vector<uint8_t>>(certificateValue);
+        auto addTypeData = std::get<int>(addTypeValue);
 
         HCERTSTORE hStore = CertOpenSystemStoreA(NULL, storeNameData.c_str());
 
@@ -87,9 +91,7 @@ void X509CertStorePlugin::HandleMethodCall(
         BOOL rst = CertAddCertificateContextToStore(
             hStore,
             pCertContext,
-            // CERT_STORE_ADD_REPLACE_EXISTING,
-            // CERT_STORE_ADD_NEWER,
-            CERT_STORE_ADD_NEW,
+            addTypeData,
             NULL
         );
 

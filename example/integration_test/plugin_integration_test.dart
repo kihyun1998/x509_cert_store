@@ -29,6 +29,7 @@ void main() {
     final rst = await plugin.addCertificate(
       storeName: storeName,
       certificateBase64: certificationBase64Str,
+      addType: X509AddType.addNew,
     );
     expect(rst.isOk, false);
   });

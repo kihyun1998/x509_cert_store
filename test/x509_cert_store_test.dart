@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
-import 'package:x509_cert_store/x509_cert_store.dart';
 import 'package:x509_cert_store/x509_cert_store_enum.dart';
 import 'package:x509_cert_store/x509_cert_store_method_channel.dart';
 import 'package:x509_cert_store/x509_cert_store_platform_interface.dart';
@@ -11,7 +10,9 @@ class MockX509CertStorePlatform
     implements X509CertStorePlatform {
   @override
   Future<X509ResValue> addCertificate(
-      {required X509StoreName storeName, required String certificateBase64}) {
+      {required X509StoreName storeName,
+      required String certificateBase64,
+      required X509AddType addType}) {
     // TODO: implement addCertificate
     throw UnimplementedError();
   }
@@ -24,11 +25,11 @@ void main() {
     expect(initialPlatform, isInstanceOf<MethodChannelX509CertStore>());
   });
 
-  test('getPlatformVersion', () async {
-    X509CertStore x509CertStorePlugin = X509CertStore();
-    MockX509CertStorePlatform fakePlatform = MockX509CertStorePlatform();
-    X509CertStorePlatform.instance = fakePlatform;
+  // test('getPlatformVersion', () async {
+  //   X509CertStore x509CertStorePlugin = X509CertStore();
+  //   MockX509CertStorePlatform fakePlatform = MockX509CertStorePlatform();
+  //   X509CertStorePlatform.instance = fakePlatform;
 
-    // expect(await x509CertStorePlugin.getPlatformVersion(), '42');
-  });
+  //   // expect(await x509CertStorePlugin.getPlatformVersion(), '42');
+  // });
 }
