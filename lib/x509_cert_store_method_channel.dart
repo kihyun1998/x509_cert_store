@@ -16,13 +16,6 @@ class MethodChannelX509CertStore extends X509CertStorePlatform {
       const MethodChannel('io.github.kihyun1998/cert_installer');
 
   @override
-  Future<String?> getPlatformVersion() async {
-    final version =
-        await methodChannel.invokeMethod<String>('getPlatformVersion');
-    return version;
-  }
-
-  @override
   Future<X509ResValue> addCertificate(
       {required X509StoreName storeName,
       required String certificateBase64}) async {

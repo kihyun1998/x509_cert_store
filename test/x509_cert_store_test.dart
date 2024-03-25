@@ -10,9 +10,6 @@ class MockX509CertStorePlatform
     with MockPlatformInterfaceMixin
     implements X509CertStorePlatform {
   @override
-  Future<String?> getPlatformVersion() => Future.value('42');
-
-  @override
   Future<X509ResValue> addCertificate(
       {required X509StoreName storeName, required String certificateBase64}) {
     // TODO: implement addCertificate
@@ -32,6 +29,6 @@ void main() {
     MockX509CertStorePlatform fakePlatform = MockX509CertStorePlatform();
     X509CertStorePlatform.instance = fakePlatform;
 
-    expect(await x509CertStorePlugin.getPlatformVersion(), '42');
+    // expect(await x509CertStorePlugin.getPlatformVersion(), '42');
   });
 }
