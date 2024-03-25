@@ -26,4 +26,8 @@ abstract class X509CertStorePlatform extends PlatformInterface {
   Future<String?> getPlatformVersion() {
     throw UnimplementedError('platformVersion() has not been implemented.');
   }
+
+  Future<bool?> addCertificate(String certificateBase64) {
+    throw UnimplementedError('platformVersion() has not been implemented.');
+  }
 }

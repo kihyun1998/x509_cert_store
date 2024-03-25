@@ -53,7 +53,7 @@ void X509CertStorePlugin::RegisterWithRegistrar(
     flutter::PluginRegistrarWindows *registrar) {
   auto channel =
       std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
-          registrar->messenger(), "x509_cert_store",
+          registrar->messenger(), "io.github.kihyun1998/cert_installer",
           &flutter::StandardMethodCodec::GetInstance());
 
   auto plugin = std::make_unique<X509CertStorePlugin>();
