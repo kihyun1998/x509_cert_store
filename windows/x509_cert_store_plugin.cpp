@@ -41,6 +41,42 @@ X509CertStorePlugin::X509CertStorePlugin() {}
 
 X509CertStorePlugin::~X509CertStorePlugin() {}
 
+
+// Function to check if the data is in PEM format and convert it to DER if it is
+std::vector<BYTE> getPemToDer(const std::vector<BYTE>& inputData) {
+    std::string pemCert(inputData.begin(), inputData.end());
+
+    // Find the PEM header and footer
+    auto beginPos = pemCert.find("-----BEGIN CERTIFICATE-----");
+    auto endPos = pemCert.find("-----END CERTIFICATE-----");
+
+    if (beginPos != std::string::npos && endPos != std::string::npos) {
+        beginPos += strlen("-----BEGIN CERTIFICATE-----");
+
+        // Extract the base64 encoded section
+        std::string base64Cert = pemCert.substr(beginPos, endPos - beginPos);
+        base64Cert.erase(std::remove(base64Cert.begin(), base64Cert.end(), '\n'), base64Cert.end());
+        base64Cert.erase(std::remove(base64Cert.begin(), base64Cert.end(), '\r'), base64Cert.end());
+        base64Cert.erase(std::remove(base64Cert.begin(), base64Cert.end(), ' '), base64Cert.end());
+
+        // Convert base64 string to binary data
+        DWORD binarySize = 0;
+        if (!CryptStringToBinaryA(base64Cert.c_str(), 0, CRYPT_STRING_BASE64, NULL, &binarySize, NULL, NULL)) {
+            return {};
+        }
+
+        std::vector<BYTE> derData(binarySize, 0);
+        if (!CryptStringToBinaryA(base64Cert.c_str(), 0, CRYPT_STRING_BASE64, derData.data(), &binarySize, NULL, NULL)) {
+            return {};
+        }
+
+        return derData;
+    }
+
+    return inputData;  // Return original if not PEM
+}
+
+
 void X509CertStorePlugin::HandleMethodCall(
     const flutter::MethodCall<flutter::EncodableValue> &method_call,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
@@ -73,10 +109,12 @@ void X509CertStorePlugin::HandleMethodCall(
           HCERTSTORE hStore = CertOpenSystemStoreA(NULL, storeNameData.c_str());
           
           if (certificateData[0] != 0x30) {
-              std::stringstream errorDetails;
-              errorDetails << "The certificate data does not appear to be in valid DER format.";
-              result->Error("INVALID_FORMAT", errorDetails.str());
+            
+            certificateData = getPemToDer(certificateData);
+            if(certificateData.empty()){
+              result->Error("INVALID_FORMAT", "Failed to convert PEM to DER format.");
               return;
+            }
           }
 
 

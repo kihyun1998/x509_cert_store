@@ -1,3 +1,7 @@
+## 0.9.4
+
+- Can also save PEM format.
+
 ## 0.9.3
 
 - Improve catch error logic
