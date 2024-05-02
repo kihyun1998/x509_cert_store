@@ -45,9 +45,10 @@ class MyApp extends StatelessWidget {
                     addType: X509AddType.addNew,
                   );
                   log(rst.msg);
-                  if (rst.msg == X509ErrorCode.alreadyExist.getString()) {
+                  log(rst.code);
+                  if (rst.code == X509ErrorCode.alreadyExist.getString()) {
                     log("key is already exist.");
-                  } else if ((rst.msg == X509ErrorCode.canceled.getString())) {
+                  } else if ((rst.code == X509ErrorCode.canceled.getString())) {
                     log("user canceled add certification.");
                   }
                 },

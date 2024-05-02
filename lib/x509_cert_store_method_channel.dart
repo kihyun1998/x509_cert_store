@@ -32,10 +32,14 @@ class MethodChannelX509CertStore extends X509CertStorePlatform {
         },
       );
 
-      return X509ResValue(isOk: result ?? false, msg: "");
+      return X509ResValue(isOk: result ?? false, msg: "", code: "");
     } on PlatformException catch (e) {
       log("Failed to add certificate : ${e.message}.");
-      return X509ResValue(isOk: false, msg: "${e.message}");
+      return X509ResValue(
+        isOk: false,
+        msg: "${e.message}",
+        code: e.message != null ? e.message!.split(' ').last : "",
+      );
     }
   }
 }

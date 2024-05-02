@@ -1,3 +1,7 @@
+## 0.9.5
+
+- Add "Error code" check variable.
+
 ## 0.9.4
 
 - Can also save PEM format.
