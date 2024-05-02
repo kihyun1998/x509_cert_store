@@ -1,3 +1,7 @@
+## 0.9.3
+
+- Improve catch error logic
+
 ## 0.9.2
 
 - Change README.md

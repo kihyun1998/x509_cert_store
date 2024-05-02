@@ -71,6 +71,14 @@ void X509CertStorePlugin::HandleMethodCall(
           auto addTypeData = std::get<int>(addTypeValue);
 
           HCERTSTORE hStore = CertOpenSystemStoreA(NULL, storeNameData.c_str());
+          
+          if (certificateData[0] != 0x30) {
+              std::stringstream errorDetails;
+              errorDetails << "The certificate data does not appear to be in valid DER format.";
+              result->Error("INVALID_FORMAT", errorDetails.str());
+              return;
+          }
+
 
           if (!hStore) {
             DWORD dwError = GetLastError();
@@ -79,14 +87,19 @@ void X509CertStorePlugin::HandleMethodCall(
             result->Error("CERT_OPEN_FAILED", ss.str());
           }
 
+
           PCCERT_CONTEXT pCertContext = CertCreateCertificateContext(
               X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
               certificateData.data(),
               static_cast<DWORD>(certificateData.size()));
 
           if (!pCertContext) {
-              CertCloseStore(hStore, 0);
-              result->Error("CONTEXT_CREATE_FAILED","Failed to create a certificate context");
+            DWORD dwError = GetLastError();
+            std::stringstream errorDetails;
+            errorDetails << "Failed to create a certificate context. Error code : " << dwError;
+            CertCloseStore(hStore, 0);
+            result->Error("CONTEXT_CREATE_FAILED",errorDetails.str());
+            return;
           }
 
           BOOL rst = CertAddCertificateContextToStore(
@@ -101,24 +114,41 @@ void X509CertStorePlugin::HandleMethodCall(
 
           if(!rst){
             DWORD dwError = GetLastError();
-            std::stringstream ss;
-            ss << dwError;
-            result->Error("CERT_ADD_FAILED", ss.str());
+            std::stringstream errorDetails;
+            errorDetails << "Failed to add the certificate to the store. Error code : " << dwError;
+            result->Error("CERT_ADD_FAILED", errorDetails.str());
+            return;
           }
 
           result->Success(flutter::EncodableValue(true)); 
 
         }
         else {
-          result->Error("CERT_ADD_FAILED", "Failed to add the certificate to the store");
+          DWORD dwError = GetLastError();
+          std::stringstream errorDetails;
+          errorDetails << "Failed to add the certificate to the store. Error code : " << dwError;
+          result->Error("CERT_ADD_FAILED", errorDetails.str());
+          return;
         }
       } else {
-        result->Error("INVALID_ARGUMENT", "Missing or invalid certificate data");
+        DWORD dwError = GetLastError();
+        std::stringstream errorDetails;
+        errorDetails << "Missing or invalid certificate data. : " << dwError;
+        result->Error("INVALID_ARGUMENT", errorDetails.str());
+        return;
       }
     }catch(const std::runtime_error& e){
-      result->Error("RUNTIME_ERROR",e.what());
+      DWORD dwError = GetLastError();
+      std::stringstream errorDetails;
+      errorDetails << "run time error : " << e.what() << "Error Code :" << dwError;
+      result->Error("RUNTIME_ERROR", errorDetails.str());
+      return;
     }catch(...){
-      result->Error("UNKNOWN_ERROR","Unknow error occurred");
+      DWORD dwError = GetLastError();
+      std::stringstream errorDetails;
+      errorDetails << "Unknow error occurred. Error Code :" << dwError;
+      result->Error("UNKNOWN_ERROR", errorDetails.str());
+      return;
     }
   } else {
     result->NotImplemented();

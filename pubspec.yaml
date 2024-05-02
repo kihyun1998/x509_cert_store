@@ -1,11 +1,12 @@
 name: x509_cert_store
-description: "A package that helps add certificates to the local certificate store using the flutter windows desktop app."
-version: 0.9.2
+description: "A package that helps add certificates to the local certificate
+  store using the flutter windows desktop app."
+version: 0.9.3
 homepage: "https://github.com/kihyun1998/x509_cert_store"
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'
-  flutter: '>=3.0.0'
+  sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.0.0"
 
 dependencies:
   flutter:
@@ -13,9 +14,9 @@ dependencies:
   plugin_platform_interface: ^2.0.2
 
 dev_dependencies:
+  flutter_lints: ^2.0.0
   flutter_test:
     sdk: flutter
-  flutter_lints: ^2.0.0
 
 flutter:
   plugin:

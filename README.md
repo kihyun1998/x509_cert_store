@@ -17,7 +17,7 @@ flutter pub add x509_cert_store
 using pubspec.yaml
 ```
 dependencies:
-  x509_cert_store: ^0.9.2
+  x509_cert_store: ^0.9.3
 ```
 
 ## pub.dev URL
