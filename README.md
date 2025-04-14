@@ -16,9 +16,9 @@ A Flutter plugin for Windows desktop applications that enables adding X.509 cert
 
 ## Platform Support
 
-| Android | iOS | macOS | Web | Windows | Linux |
-|:-------:|:---:|:-----:|:---:|:-------:|:-----:|
-|    ❌    |  ❌  |   🔜   |  ❌  |    ✅    |   🔜   |
+| macOS | Windows | Linux |
+|:-----:|:-------:|:-----:|
+|   🔜   |    ✅    |   🔜   |
 
 macOS and Linux support coming soon!
 
