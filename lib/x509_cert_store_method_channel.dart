@@ -12,7 +12,7 @@ class MethodChannelX509CertStore extends X509CertStorePlatform {
   /// The method channel used to interact with the native platform.
   @visibleForTesting
   final methodChannel =
-      const MethodChannel('io.github.kihyun1998/cert_installer');
+      const MethodChannel('io.github.kihyun1998/x509_cert_store');
 
   @override
   Future<X509ResValue> addCertificate({
