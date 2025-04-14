@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:developer';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -32,14 +31,17 @@ class MethodChannelX509CertStore extends X509CertStorePlatform {
         },
       );
 
-      return X509ResValue(isOk: result ?? false, msg: "", code: "");
-    } on PlatformException catch (e) {
-      log("Failed to add certificate : ${e.message}.");
-      return X509ResValue(
-        isOk: false,
-        msg: "${e.message}",
-        code: e.message != null ? e.message!.split(' ').last : "",
+      return X509ResValue.success();
+    } on PlatformException catch (error) {
+      final errorCode =
+          error.message != null ? error.message!.split(' ').last : "UNKNOWN";
+      return X509ResValue.error(
+        errorCode,
+        "Failed to add certificate: ${error.message}",
       );
+    } catch (error) {
+      return X509ResValue.error(
+          "UNEXPECTED_ERROR", "An unexpected error occurred: $error");
     }
   }
 }

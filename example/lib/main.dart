@@ -12,6 +12,21 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
+  void _handleCertificateResult(X509ResValue result) {
+    log(result.msg);
+    log(result.code);
+
+    if (result.hasError(X509ErrorCode.alreadyExist)) {
+      log("Certificate already exists.");
+    } else if (result.hasError(X509ErrorCode.canceled)) {
+      log("User canceled certificate addition.");
+    } else if (!result.isOk) {
+      log("Failed to add certificate: ${result.msg}");
+    } else {
+      log("Certificate added successfully.");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final x509CertStorePlugin = X509CertStore();
@@ -44,13 +59,7 @@ class MyApp extends StatelessWidget {
                     certificateBase64: certificationBase64Str,
                     addType: X509AddType.addNew,
                   );
-                  log(rst.msg);
-                  log(rst.code);
-                  if (rst.code == X509ErrorCode.alreadyExist.getString()) {
-                    log("key is already exist.");
-                  } else if ((rst.code == X509ErrorCode.canceled.getString())) {
-                    log("user canceled add certification.");
-                  }
+                  _handleCertificateResult(rst);
                 },
                 child: const Text("Add_New Certification"),
               ),
@@ -61,12 +70,7 @@ class MyApp extends StatelessWidget {
                     certificateBase64: certificationBase64Str,
                     addType: X509AddType.addNewer,
                   );
-                  log(rst.msg);
-                  if (rst.msg == X509ErrorCode.alreadyExist.getString()) {
-                    log("key is already exist.");
-                  } else if ((rst.msg == X509ErrorCode.canceled.getString())) {
-                    log("user canceled add certification.");
-                  }
+                  _handleCertificateResult(rst);
                 },
                 child: const Text("Add_Newer Certification"),
               ),
@@ -77,12 +81,7 @@ class MyApp extends StatelessWidget {
                     certificateBase64: certificationBase64Str,
                     addType: X509AddType.addReplaceExisting,
                   );
-                  log(rst.msg);
-                  if (rst.msg == X509ErrorCode.alreadyExist.getString()) {
-                    log("key is already exist.");
-                  } else if ((rst.msg == X509ErrorCode.canceled.getString())) {
-                    log("user canceled add certification.");
-                  }
+                  _handleCertificateResult(rst);
                 },
                 child: const Text("Add ReplaceExisting Certification"),
               ),

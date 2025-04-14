@@ -14,15 +14,27 @@ enum X509StoreName {
 
 enum X509ErrorCode {
   canceled,
-  alreadyExist;
+  alreadyExist,
+  unknown;
 
   String getString() {
     switch (this) {
       case X509ErrorCode.alreadyExist:
-        return "2148081669";
+        return "2148081669"; // CRYPT_E_EXISTS
       case X509ErrorCode.canceled:
-        return "1223";
+        return "1223"; // ERROR_CANCELLED
+      case X509ErrorCode.unknown:
+        return "UNKNOWN";
     }
+  }
+
+  static X509ErrorCode fromString(String code) {
+    for (var value in X509ErrorCode.values) {
+      if (value.getString() == code) {
+        return value;
+      }
+    }
+    return X509ErrorCode.unknown;
   }
 }
 
