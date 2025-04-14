@@ -22,7 +22,7 @@ class MethodChannelX509CertStore extends X509CertStorePlatform {
   }) async {
     try {
       final certificateBytes = base64.decode(certificateBase64);
-      final result = await methodChannel.invokeMethod<bool>(
+      await methodChannel.invokeMethod<bool>(
         'addCertificate',
         {
           'storeName': storeName.getString(),
