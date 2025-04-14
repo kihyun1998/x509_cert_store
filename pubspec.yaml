@@ -25,3 +25,5 @@ flutter:
     platforms:
       windows:
         pluginClass: X509CertStorePluginCApi
+      macos:
+        pluginClass: X509CertStorePlugin
