@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'x509_cert_store'
-  s.version          = '0.0.1'
+  s.version          = '1.0.0'
   s.summary          = 'A new Flutter plugin project.'
   s.description      = <<-DESC
 A new Flutter plugin project.
@@ -23,6 +23,7 @@ A new Flutter plugin project.
   # s.resource_bundles = {'x509_cert_store_privacy' => ['Resources/PrivacyInfo.xcprivacy']}
 
   s.dependency 'FlutterMacOS'
+  s.framework = 'Security'
 
   s.platform = :osx, '10.11'
   s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES' }
