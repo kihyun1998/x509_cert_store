@@ -82,12 +82,17 @@ public class X509CertStorePlugin: NSObject, FlutterPlugin {
         // Will add the certificate below
     } else if addType == CERT_STORE_ADD_REPLACE_EXISTING {
         // For CERT_STORE_ADD_REPLACE_EXISTING: Delete existing certificate if it exists
-        let deleteQuery: [String: Any] = [
-            kSecClass as String: kSecClassCertificate,
-            kSecValueRef as String: certificate
-        ]
-        
-        _ = SecItemDelete(deleteQuery as CFDictionary)
+        if let existingCert = findExistingCertificate(certificate: certificate) {
+          let deleteQuery: [String: Any] = [
+              kSecClass as String: kSecClassCertificate,
+              kSecValueRef as String: existingCert
+          ]
+
+          let deleteStatus = SecItemDelete(deleteQuery as CFDictionary)
+          if deleteStatus != errSecSuccess {
+              throw CertificateError.securityError(deleteStatus)
+          }
+        } 
     } else if addType == CERT_STORE_ADD_NEWER {
         // For CERT_STORE_ADD_NEWER: Check if certificate exists
         if let existing = findExistingCertificate(certificate: certificate) {
