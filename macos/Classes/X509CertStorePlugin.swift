@@ -90,7 +90,7 @@ public class X509CertStorePlugin: NSObject, FlutterPlugin {
         _ = SecItemDelete(deleteQuery as CFDictionary)
     } else if addType == CERT_STORE_ADD_NEWER {
         // For CERT_STORE_ADD_NEWER: Check if certificate exists
-        if let existing = findExistingCertificate(byCert: certificate) {
+        if let existing = findExistingCertificate(certificate: certificate) {
             // Compare certificates to see if the new one is newer
             if !isNewerCertificate(newCert: certificate, existingCert: existing) {
                 // If the new certificate is not newer, don't add it and return success
@@ -141,74 +141,69 @@ public class X509CertStorePlugin: NSObject, FlutterPlugin {
           ? (existingItem as! SecCertificate) 
           : nil
   }
-
-  private func findExistingCertificate(byCert certificate: SecCertificate) -> SecCertificate? {
-      guard let newData = SecCertificateCopyData(certificate) as Data? else {
-          return nil
-      }
-      
-      let query: [String: Any] = [
-          kSecClass as String: kSecClassCertificate,
-          kSecReturnRef as String: true,
-          kSecMatchLimit as String: kSecMatchLimitAll
+  
+  func loadAllCertificatesFromKeychain() -> [SecCertificate] {
+      let query: [CFString: Any] = [
+          kSecClass: kSecClassCertificate,
+          kSecMatchLimit: kSecMatchLimitAll,
+          kSecReturnRef: true
       ]
-      
+
       var result: CFTypeRef?
       let status = SecItemCopyMatching(query as CFDictionary, &result)
-      guard status == errSecSuccess, let result = result else { return nil }
-      
-      var certs: [SecCertificate] = []
-      
-      // 1. CFArray인지 확인
-      if CFGetTypeID(result) == CFArrayGetTypeID() {
-          let array = unsafeBitCast(result, to: NSArray.self)
-          for item in array {
-              if CFGetTypeID(item as CFTypeRef) == SecCertificateGetTypeID() {
-                  certs.append(item as! SecCertificate)
-              }
-          }
-      }
-      // 2. 단일 SecCertificate인 경우
-      else if CFGetTypeID(result) == SecCertificateGetTypeID() {
-          certs = [unsafeBitCast(result, to: SecCertificate.self)]
+
+      if status == errSecSuccess, let certs = result as? [SecCertificate] {
+          return certs
       }
 
-      for existing in certs {
-          if let data = SecCertificateCopyData(existing) as Data?,
-            data == newData {
-              return existing
+      return []
+  }
+
+  // Check if certificate already exists in the keychain
+  func certificateExists(certificate: SecCertificate) -> Bool {
+      guard let certIssuer = SecCertificateCopyNormalizedIssuerSequence(certificate) as Data?,
+            let certSerial = SecCertificateCopySerialNumberData(certificate, nil) as Data? else {
+          return false
+      }
+
+      let allCerts = loadAllCertificatesFromKeychain()
+
+      for existingCert in allCerts {
+          guard let existingIssuer = SecCertificateCopyNormalizedIssuerSequence(existingCert) as Data?,
+                let existingSerial = SecCertificateCopySerialNumberData(existingCert, nil) as Data? else {
+              continue
+          }
+
+          if existingIssuer == certIssuer && existingSerial == certSerial {
+              return true
           }
       }
 
-      return nil
+      return false
   }
 
 
 
+  func findExistingCertificate(certificate: SecCertificate) -> SecCertificate? {
+      guard let certIssuer = SecCertificateCopyNormalizedIssuerSequence(certificate) as Data?,
+            let certSerial = SecCertificateCopySerialNumberData(certificate, nil) as Data? else {
+          return nil
+      }
 
-  // Check if certificate already exists in the keychain
-  private func certificateExists(certificate: SecCertificate) -> Bool {
-    // 비교 대상 DER 데이터 추출
-    guard let certData = SecCertificateCopyData(certificate) as Data? else {
-        return false
-    }
-    
-    // Keychain에서 모든 Certificate 아이템의 DER 데이터를 요청
-    let query: [String: Any] = [
-        kSecClass as String: kSecClassCertificate,
-        kSecReturnData as String: kSecReturnData,
-        kSecMatchLimit as String: kSecMatchLimitAll
-    ]
-    
-    var result: CFTypeRef?
-    let status = SecItemCopyMatching(query as CFDictionary, &result)
-    guard status == errSecSuccess,
-          let dataArray = result as? [Data] else {
-        return false
-    }
-    
-    // 기존에 등록된 DER 데이터 중 하나라도 일치하면 true
-    return dataArray.contains(certData)
+      let allCerts = loadAllCertificatesFromKeychain()
+
+      for existingCert in allCerts {
+          guard let existingIssuer = SecCertificateCopyNormalizedIssuerSequence(existingCert) as Data?,
+                let existingSerial = SecCertificateCopySerialNumberData(existingCert, nil) as Data? else {
+              continue
+          }
+
+          if existingIssuer == certIssuer && existingSerial == certSerial {
+              return existingCert
+          }
+      }
+
+      return nil
   }
 
 
