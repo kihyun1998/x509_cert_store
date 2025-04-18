@@ -23,10 +23,11 @@ x509_cert_store/
     │   │   │   └── xcschemes/
     │   │   │   │   └── Runner.xcscheme
     │   │   └── project.pbxproj
-    │   └── Runner.xcworkspace/
+    │   ├── Runner.xcworkspace/
     │   │   ├── xcshareddata/
-    │   │       └── IDEWorkspaceChecks.plist
+    │   │   │   └── IDEWorkspaceChecks.plist
     │   │   └── contents.xcworkspacedata
+    │   └── Podfile
     ├── test/
     │   └── widget_test.dart
     └── x509_cert_store_example.iml
@@ -55,6 +56,7 @@ x509_cert_store/
     ├── x509_cert_store_plugin.cpp
     ├── x509_cert_store_plugin.h
     └── x509_cert_store_plugin_c_api.cpp
+├── openssl.md
 └── x509_cert_store.iml
 ```
 
@@ -100,11 +102,13 @@ void main() {
 ```
 ## example/lib/main.dart
 ```dart
+// main.dart
 import 'dart:convert';
-import 'dart:developer';
 import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:x509_cert_store/x509_cert_store.dart';
 
 void main() {
@@ -114,86 +118,529 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  void _handleCertificateResult(X509ResValue result) {
-    log(result.msg);
-    log(result.code);
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'X509 Certificate Store Demo',
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+        useMaterial3: true,
+      ),
+      home: const CertificateManagerPage(),
+    );
+  }
+}
 
-    if (result.hasError(X509ErrorCode.alreadyExist)) {
-      log("Certificate already exists.");
-    } else if (result.hasError(X509ErrorCode.canceled)) {
-      log("User canceled certificate addition.");
-    } else if (!result.isOk) {
-      log("Failed to add certificate: ${result.msg}");
-    } else {
-      log("Certificate added successfully.");
-    }
+class CertificateManagerPage extends StatefulWidget {
+  const CertificateManagerPage({super.key});
+
+  @override
+  State<CertificateManagerPage> createState() => _CertificateManagerPageState();
+}
+
+class _CertificateManagerPageState extends State<CertificateManagerPage> {
+  final x509CertStorePlugin = X509CertStore();
+  final TextEditingController _certificateController = TextEditingController();
+
+  X509StoreName _selectedStore = X509StoreName.root;
+  X509AddType _selectedAddType = X509AddType.addNew;
+
+  String _statusMessage = '';
+  bool _isSuccess = false;
+  bool _isLoading = false;
+  String? _loadedFilename;
+  String _errorCode = '';
+
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  @override
+  void dispose() {
+    _certificateController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final x509CertStorePlugin = X509CertStore();
-
-    const basicKey =
-        "MIIDKjCCAhKgAwIBAgIQFSHum2++9bhOXjAo4Z7hZTANBgkqhkiG9w0BAQsFADAaMRgwFgYDVQQDDA93d3cuZXhhbXBsZS5jb20wHhcNMjQwMzI1MDQwMTAxWhcNMjUwMzI1MDQyMTAxWjAaMRgwFgYDVQQDDA93d3cuZXhhbXBsZS5jb20wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDD95UVvL2GmO1Sq2XEE/m7yK1YzqAlOo68zx8Zk5DS0SmK3e990VtdCPP6cZxcGsJHlqBEg2yMuheC37/tqKdZgRxWbA6DBwZdO9iTSsQigDYi6Ak5YbPSis2z2IJ/RtYnbVM0TZxxwRbPK6zw+evoRAAaVohDzzV3YolHezLacLuIuc8ZX4w+oNBM1nhnYcBxKHeZlIdnrTvnqmUNsc5RsTVgiKuF3JuwqMp8iGK2I5OXKX0PU9Xu2DWDgNDyYFje9cuUd5V80AABQr9QgalOaLkfknluWulOLl8yLhg/icuFQucGnHxNDfDo2eRgxRjMFb53VdLSG8BDfk+7HXDxAgMBAAGjbDBqMA4GA1UdDwEB/wQEAwIFoDAdBgNVHSUEFjAUBggrBgEFBQcDAgYIKwYBBQUHAwEwGgYDVR0RBBMwEYIPd3d3LmV4YW1wbGUuY29tMB0GA1UdDgQWBBTz3vduP0OefbHqptjxpk1V89RpCjANBgkqhkiG9w0BAQsFAAOCAQEAaShA+e6dBaVt9na97fAgGMEdWpfI66WrJOVn5gczcPCzsjtZTkUjKh7IiZHCeyq5vWHmrG20PZpag34vvk0zacwR9PJeCbCzCmGfJ8miKCaywfxRpJVSWweLyppXRk/TDkXynhGAjD0EMHocc6jClcIrypxB9LjoS2oHA/+iGnx6dLeWf9bpTFBDIAevOXpKhlrSftUM1vaPkMdMN/mEk5mx189382IOsH6gocF+ru8u0PnWAdlF3muGsmvF4K31zVS5vMIQLD76FpO7ee/xrOcYxNS+2dPDDs2m9LlWA4BjUJlyfgM39CCRNyxggLrzYzlo1pT/67JOI/57dVa4YQ==";
-
-    /// example certification
-    const String certificationBase64Str = basicKey;
-    return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(title: const Text("Add Certification Example")),
-        body: Center(
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('X509 Certificate Manager'),
+        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ElevatedButton(
-                  onPressed: () async {
-                    final bytes = base64Decode(certificationBase64Str);
+              // Platform info card
+              Card(
+                margin: const EdgeInsets.only(bottom: 16.0),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Platform.isWindows
+                            ? Icons.window
+                            : Platform.isMacOS
+                                ? Icons.laptop_mac
+                                : Icons.devices,
+                        size: 36,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(width: 16),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Platform: ${Platform.operatingSystem}",
+                            style: const TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            "Version: ${Platform.operatingSystemVersion}",
+                            style: TextStyle(
+                                color: Theme.of(context).colorScheme.secondary),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
 
-                    final file = File(r'C:\Users\User\cert.crt');
-                    await file.writeAsBytes(bytes);
-                    log("done");
-                  },
-                  child: const Text("Make Cert file")),
-              ElevatedButton(
-                onPressed: () async {
-                  final rst = await x509CertStorePlugin.addCertificate(
-                    storeName: X509StoreName.root,
-                    certificateBase64: certificationBase64Str,
-                    addType: X509AddType.addNew,
-                  );
-                  _handleCertificateResult(rst);
-                },
-                child: const Text("Add_New Certification"),
+              // Certificate Storage Location
+              const Text(
+                "Certificate Store Location:",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
-              ElevatedButton(
-                onPressed: () async {
-                  final rst = await x509CertStorePlugin.addCertificate(
-                    storeName: X509StoreName.root,
-                    certificateBase64: certificationBase64Str,
-                    addType: X509AddType.addNewer,
-                  );
-                  _handleCertificateResult(rst);
-                },
-                child: const Text("Add_Newer Certification"),
+              Row(
+                children: [
+                  Radio<X509StoreName>(
+                    value: X509StoreName.root,
+                    groupValue: _selectedStore,
+                    onChanged: (X509StoreName? value) {
+                      setState(() {
+                        _selectedStore = value!;
+                      });
+                    },
+                  ),
+                  const Text('ROOT Store'),
+                  const SizedBox(width: 20),
+                  Radio<X509StoreName>(
+                    value: X509StoreName.my,
+                    groupValue: _selectedStore,
+                    onChanged: (X509StoreName? value) {
+                      setState(() {
+                        _selectedStore = value!;
+                      });
+                    },
+                  ),
+                  const Text('MY Store (Personal)'),
+                ],
               ),
-              ElevatedButton(
-                onPressed: () async {
-                  final rst = await x509CertStorePlugin.addCertificate(
-                    storeName: X509StoreName.root,
-                    certificateBase64: certificationBase64Str,
-                    addType: X509AddType.addReplaceExisting,
-                  );
-                  _handleCertificateResult(rst);
-                },
-                child: const Text("Add ReplaceExisting Certification"),
+              const SizedBox(height: 16),
+
+              // Certificate Addition Type
+              const Text(
+                "Certificate Addition Type:",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
+              DropdownButtonFormField<X509AddType>(
+                value: _selectedAddType,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                ),
+                items: const [
+                  DropdownMenuItem(
+                    value: X509AddType.addNew,
+                    child: Row(
+                      children: [
+                        Icon(Icons.new_label, size: 16),
+                        SizedBox(width: 8),
+                        Text('Add New (Only if not exists)'),
+                      ],
+                    ),
+                  ),
+                  DropdownMenuItem(
+                    value: X509AddType.addNewer,
+                    child: Row(
+                      children: [
+                        Icon(Icons.upgrade, size: 16),
+                        SizedBox(width: 8),
+                        Text('Add Newer (Only if newer)'),
+                      ],
+                    ),
+                  ),
+                  DropdownMenuItem(
+                    value: X509AddType.addReplaceExisting,
+                    child: Row(
+                      children: [
+                        Icon(Icons.published_with_changes, size: 16),
+                        SizedBox(width: 8),
+                        Text('Replace (Overwrite existing)'),
+                      ],
+                    ),
+                  ),
+                ],
+                onChanged: (X509AddType? value) {
+                  setState(() {
+                    _selectedAddType = value!;
+                  });
+                },
+              ),
+              const SizedBox(height: 24),
+
+              // Certificate Content Section
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    "Certificate Content (Base64):",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  Row(
+                    children: [
+                      if (_loadedFilename != null)
+                        Chip(
+                          label: Text(_loadedFilename!),
+                          deleteIcon: const Icon(Icons.close, size: 16),
+                          onDeleted: () {
+                            setState(() {
+                              _loadedFilename = null;
+                            });
+                          },
+                        ),
+                      const SizedBox(width: 8),
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.upload_file),
+                        label: const Text('Load from File'),
+                        onPressed: _loadCertificateFromFile,
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: const Icon(Icons.paste),
+                        tooltip: 'Paste from clipboard',
+                        onPressed: _pasteFromClipboard,
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.copy),
+                        tooltip: 'Copy to clipboard',
+                        onPressed: () {
+                          if (_certificateController.text.isNotEmpty) {
+                            Clipboard.setData(ClipboardData(
+                                text: _certificateController.text));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text('Copied to clipboard')),
+                            );
+                          }
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.clear),
+                        tooltip: 'Clear content',
+                        onPressed: () {
+                          setState(() {
+                            _certificateController.clear();
+                            _loadedFilename = null;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _certificateController,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: 'Paste base64 encoded certificate here...',
+                ),
+                maxLines: 6,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter certificate content';
+                  }
+                  try {
+                    base64Decode(value.replaceAll(RegExp(r'\s+'), ''));
+                    return null;
+                  } catch (e) {
+                    return 'Invalid base64 format';
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // Action Buttons
+              Center(
+                child: _isLoading
+                    ? const CircularProgressIndicator()
+                    : ElevatedButton.icon(
+                        icon: const Icon(Icons.security),
+                        label: const Text('Add Certificate to Store'),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 24, vertical: 12),
+                          textStyle: const TextStyle(fontSize: 16),
+                        ),
+                        onPressed: _addCertificate,
+                      ),
+              ),
+              const SizedBox(height: 24),
+
+              // Status Section
+              if (_statusMessage.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: _isSuccess
+                        ? Colors.green.withOpacity(0.1)
+                        : Colors.red.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: _isSuccess ? Colors.green : Colors.red,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            _isSuccess ? Icons.check_circle : Icons.error,
+                            color: _isSuccess ? Colors.green : Colors.red,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _isSuccess ? "Success" : "Error",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                              color: _isSuccess ? Colors.green : Colors.red,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(_statusMessage),
+                      if (!_isSuccess && _errorCode.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            "Error Code: $_errorCode",
+                            style: const TextStyle(
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+
+              // Sample certificate section
+              const SizedBox(height: 24),
+              ExpansionTile(
+                title: const Text("Sample Certificate"),
+                subtitle: const Text("Use this sample certificate for testing"),
+                expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Text(
+                      "This is a sample self-signed certificate for testing purposes only.",
+                      style: TextStyle(fontStyle: FontStyle.italic),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.content_copy),
+                      label: const Text("Copy Sample Certificate"),
+                      onPressed: () {
+                        _certificateController.text = _getSampleCertificate();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('Sample certificate loaded')),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+
+              // Debug Info (for developers)
+              if (_isSuccess == false && _errorCode.isNotEmpty)
+                ExpansionTile(
+                  title: const Text("Debug Information"),
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("Error Code: $_errorCode"),
+                          const SizedBox(height: 8),
+                          const Text("Common Error Codes:"),
+                          const SizedBox(height: 4),
+                          const Text("• 1223: User canceled the operation"),
+                          const Text(
+                              "• 2148081669: Certificate already exists in the store"),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
             ],
           ),
         ),
       ),
     );
   }
+
+  Future<void> _pasteFromClipboard() async {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    if (data != null && data.text != null) {
+      setState(() {
+        _certificateController.text = data.text!;
+        _loadedFilename = null;
+      });
+    }
+  }
+
+  String _getSampleCertificate() {
+    return "MIIDPzCCAiegAwIBAgIUTaCSxPYnAxNeYiWCTKJhTEuLlrUwDQYJKoZIhvcNAQELBQAwGDEWMBQGA1UEAwwNbXljb21wYW55LmNvbTAeFw0yNTA0MTYxMzAyNThaFw0yNjA0MTYxMzAyNThaMBgxFjAUBgNVBAMMDW15Y29tcGFueS5jb20wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC/FBH6gVh0bd3s1j1sJ5VvNVBPCTlX8pyvE5TzSyY2wbu8FB+qwjZVUqhkJM4eTmlyn5oR1ZJrzxBxX3t2h2Mqd+EePZ6d1c1yb/FhnvxgUQINUI1PBnQfqHq//5e0NS2OHk3nLiGM01iLPL71E8PAjZnKxtjdQfGoxBvF5DnUtzk0ZmrUdpHSuJA2jzru0D70Yqi6BxLX+P9dDIhR/+Ym4CBewmh4bsBl0Cq9DzR1uajs860U7Y9nFK4JGQOPsQPkgNNXDaXF9OJiQx+dxuKGUcdTqmwy4bsiwxTLhRZQxTaG7oFTgepB+jvCMU4eAE+FXSETJneQkB+KjdJnRhEZAgMBAAGjgYAwfjAdBgNVHQ4EFgQUMR37QYIjV14yf5K1M21NwL6zANEwHwYDVR0jBBgwFoAUMR37QYIjV14yf5K1M21NwL6zANEwDwYDVR0TAQH/BAUwAwEB/zArBgNVHREEJDAigg1teWNvbXBhbnkuY29tghF3d3cubXljb21wYW55LmNvbTANBgkqhkiG9w0BAQsFAAOCAQEAYMBzjiPhLwuJUhJwM9mzGL6FP81Gyk7wenMZQF1UC54Lw/mZCzCWJW4fC398j4OVxHfU/aenkAVs0s9xu7q/Z+iol6iVAen6yHIM6RyzrKBLZfXU/15lH5wTjM+EUUEutzbxS80Kb2hBO/e3ITqq0qcbHLD0S6aM67KYbpQ/g6MbNNuMB6Uw0aC2EVknfP8JqSjMfY0w8n/y8Bsz1JQZa/zLsrQr95i1FaSayB94AB9yWrf2XBqS9BbX9BXr2YqKST3lLzUMbsvUpN9IDtRULFeD3LcNfMXTMYHInggf7trTkj2YRVKr6acLhggyqFi1I/feXuXtENOOvq0RcLK1bg==";
+  }
+
+  Future<void> _loadCertificateFromFile() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['crt', 'pem', 'cer', 'der'],
+      );
+
+      if (result != null) {
+        File file = File(result.files.single.path!);
+        Uint8List bytes = await file.readAsBytes();
+        String base64Cert = base64Encode(bytes);
+
+        setState(() {
+          _certificateController.text = base64Cert;
+          _loadedFilename = result.files.single.name;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _statusMessage = 'Error loading certificate file: $e';
+        _isSuccess = false;
+        _errorCode = 'FILE_READ_ERROR';
+      });
+    }
+  }
+
+  void _handleCertificateResult(X509ResValue result) {
+    setState(() {
+      _isLoading = false;
+      _isSuccess = result.isOk;
+      _statusMessage = result.msg;
+      _errorCode = result.code;
+
+      // Add additional context to common error codes
+      if (result.hasError(X509ErrorCode.alreadyExist)) {
+        _statusMessage =
+            "Certificate already exists in the store. To replace it, use the 'Replace' mode.";
+      } else if (result.hasError(X509ErrorCode.canceled)) {
+        _statusMessage = "User canceled the certificate addition process.";
+      }
+    });
+  }
+
+  Future<void> _addCertificate() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _statusMessage = '';
+    });
+
+    try {
+      final certificateBase64 =
+          _certificateController.text.replaceAll(RegExp(r'\s+'), '');
+
+      print("🔒 Adding certificate to ${Platform.operatingSystem} store...");
+      print("   Store: ${_selectedStore.getString()}");
+      print("   Mode: ${_selectedAddType.toString().split('.').last}");
+
+      final result = await x509CertStorePlugin.addCertificate(
+        storeName: _selectedStore,
+        certificateBase64: certificateBase64,
+        addType: _selectedAddType,
+      );
+
+      _handleCertificateResult(result);
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _isSuccess = false;
+        _statusMessage = "Exception during addCertificate: $e";
+        _errorCode = 'EXCEPTION';
+      });
+    }
+  }
 }
+
+```
+## example/macos/Podfile
+```
+platform :osx, '10.14'
+
+# CocoaPods analytics sends network stats synchronously affecting flutter build latency.
+ENV['COCOAPODS_DISABLE_STATS'] = 'true'
+
+project 'Runner', {
+  'Debug' => :debug,
+  'Profile' => :release,
+  'Release' => :release,
+}
+
+def flutter_root
+  generated_xcode_build_settings_path = File.expand_path(File.join('..', 'Flutter', 'ephemeral', 'Flutter-Generated.xcconfig'), __FILE__)
+  unless File.exist?(generated_xcode_build_settings_path)
+    raise "#{generated_xcode_build_settings_path} must exist. If you're running pod install manually, make sure \"flutter pub get\" is executed first"
+  end
+
+  File.foreach(generated_xcode_build_settings_path) do |line|
+    matches = line.match(/FLUTTER_ROOT\=(.*)/)
+    return matches[1].strip if matches
+  end
+  raise "FLUTTER_ROOT not found in #{generated_xcode_build_settings_path}. Try deleting Flutter-Generated.xcconfig, then run \"flutter pub get\""
+end
+
+require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
+
+flutter_macos_podfile_setup
+
+target 'Runner' do
+  use_frameworks!
+  use_modular_headers!
+
+  flutter_install_all_macos_pods File.dirname(File.realpath(__FILE__))
+  target 'RunnerTests' do
+    inherit! :search_paths
+  end
+end
+
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    flutter_additional_macos_build_settings(target)
+  end
+end
 
 ```
 ## example/macos/Runner/AppDelegate.swift
@@ -224,6 +671,8 @@ class AppDelegate: FlutterAppDelegate {
 	<key>com.apple.security.cs.allow-jit</key>
 	<true/>
 	<key>com.apple.security.network.server</key>
+	<true/>
+	<key>com.apple.security.keychain</key>
 	<true/>
 </dict>
 </plist>
@@ -292,6 +741,8 @@ class MainFlutterWindow: NSWindow {
 <dict>
 	<key>com.apple.security.app-sandbox</key>
 	<true/>
+	<key>com.apple.security.keychain</key>
+	<true/>
 </dict>
 </plist>
 
@@ -321,12 +772,14 @@ class MainFlutterWindow: NSWindow {
 /* End PBXAggregateTarget section */
 
 /* Begin PBXBuildFile section */
+		124A003E9930B76C18A07086 /* Pods_RunnerTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AC57FD172A13A789F6E0621E /* Pods_RunnerTests.framework */; };
 		331C80D8294CF71000263BE5 /* RunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 331C80D7294CF71000263BE5 /* RunnerTests.swift */; };
 		335BBD1B22A9A15E00E9071D /* GeneratedPluginRegistrant.swift in Sources */ = {isa = PBXBuildFile; fileRef = 335BBD1A22A9A15E00E9071D /* GeneratedPluginRegistrant.swift */; };
 		33CC10F12044A3C60003C045 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC10F02044A3C60003C045 /* AppDelegate.swift */; };
 		33CC10F32044A3C60003C045 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 33CC10F22044A3C60003C045 /* Assets.xcassets */; };
 		33CC10F62044A3C60003C045 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 33CC10F42044A3C60003C045 /* MainMenu.xib */; };
 		33CC11132044BFA00003C045 /* MainFlutterWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11122044BFA00003C045 /* MainFlutterWindow.swift */; };
+		3EA6748ACF3ECB7FEEAFA2E3 /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 050210E634BB3B5D30D1D0CF /* Pods_Runner.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -360,11 +813,12 @@ class MainFlutterWindow: NSWindow {
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		050210E634BB3B5D30D1D0CF /* Pods_Runner.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Runner.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		331C80D5294CF71000263BE5 /* RunnerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RunnerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		331C80D7294CF71000263BE5 /* RunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunnerTests.swift; sourceTree = "<group>"; };
 		333000ED22D3DE5D00554162 /* Warnings.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Warnings.xcconfig; sourceTree = "<group>"; };
 		335BBD1A22A9A15E00E9071D /* GeneratedPluginRegistrant.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GeneratedPluginRegistrant.swift; sourceTree = "<group>"; };
-		33CC10ED2044A3C60003C045 /* x509_cert_store_example.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "x509_cert_store_example.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		33CC10ED2044A3C60003C045 /* x509_cert_store_example.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = x509_cert_store_example.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		33CC10F02044A3C60003C045 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		33CC10F22044A3C60003C045 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = Runner/Assets.xcassets; sourceTree = "<group>"; };
 		33CC10F52044A3C60003C045 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
@@ -376,8 +830,15 @@ class MainFlutterWindow: NSWindow {
 		33E51913231747F40026EE4D /* DebugProfile.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = DebugProfile.entitlements; sourceTree = "<group>"; };
 		33E51914231749380026EE4D /* Release.entitlements */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.entitlements; path = Release.entitlements; sourceTree = "<group>"; };
 		33E5194F232828860026EE4D /* AppInfo.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = AppInfo.xcconfig; sourceTree = "<group>"; };
+		3BCB0B28C9572BB2F2D82D30 /* Pods-RunnerTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.debug.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.debug.xcconfig"; sourceTree = "<group>"; };
+		711E8102A91346F3E0C4DA7B /* Pods-Runner.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"; sourceTree = "<group>"; };
+		78D0B2E2E5698C0C7B04011E /* Pods-Runner.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
+		824E75BBDF39AF704E264719 /* Pods-Runner.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"; sourceTree = "<group>"; };
 		9740EEB21CF90195004384FC /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
+		AC57FD172A13A789F6E0621E /* Pods_RunnerTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RunnerTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		CE291F5148654E0B7998BA6F /* Pods-RunnerTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.release.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.release.xcconfig"; sourceTree = "<group>"; };
+		E4ED7308576CA4E07C0EC5DB /* Pods-RunnerTests.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.profile.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.profile.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -385,6 +846,7 @@ class MainFlutterWindow: NSWindow {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				124A003E9930B76C18A07086 /* Pods_RunnerTests.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -392,6 +854,7 @@ class MainFlutterWindow: NSWindow {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3EA6748ACF3ECB7FEEAFA2E3 /* Pods_Runner.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -424,7 +887,8 @@ class MainFlutterWindow: NSWindow {
 				33CEB47122A05771004F2AC0 /* Flutter */,
 				331C80D6294CF71000263BE5 /* RunnerTests */,
 				33CC10EE2044A3C60003C045 /* Products */,
-				D73912EC22F37F3D000D13A0 /* Frameworks */,
+				D46EAFCA788A2B9F0EC5FCFD /* Pods */,
+				EE4B862FC1785054BA6659FF /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -472,9 +936,25 @@ class MainFlutterWindow: NSWindow {
 			path = Runner;
 			sourceTree = "<group>";
 		};
-		D73912EC22F37F3D000D13A0 /* Frameworks */ = {
+		D46EAFCA788A2B9F0EC5FCFD /* Pods */ = {
 			isa = PBXGroup;
 			children = (
+				78D0B2E2E5698C0C7B04011E /* Pods-Runner.debug.xcconfig */,
+				711E8102A91346F3E0C4DA7B /* Pods-Runner.release.xcconfig */,
+				824E75BBDF39AF704E264719 /* Pods-Runner.profile.xcconfig */,
+				3BCB0B28C9572BB2F2D82D30 /* Pods-RunnerTests.debug.xcconfig */,
+				CE291F5148654E0B7998BA6F /* Pods-RunnerTests.release.xcconfig */,
+				E4ED7308576CA4E07C0EC5DB /* Pods-RunnerTests.profile.xcconfig */,
+			);
+			name = Pods;
+			path = Pods;
+			sourceTree = "<group>";
+		};
+		EE4B862FC1785054BA6659FF /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				050210E634BB3B5D30D1D0CF /* Pods_Runner.framework */,
+				AC57FD172A13A789F6E0621E /* Pods_RunnerTests.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -486,6 +966,7 @@ class MainFlutterWindow: NSWindow {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 331C80DE294CF71000263BE5 /* Build configuration list for PBXNativeTarget "RunnerTests" */;
 			buildPhases = (
+				F164A6FA13ADA0783DBCD933 /* [CP] Check Pods Manifest.lock */,
 				331C80D1294CF70F00263BE5 /* Sources */,
 				331C80D2294CF70F00263BE5 /* Frameworks */,
 				331C80D3294CF70F00263BE5 /* Resources */,
@@ -504,11 +985,13 @@ class MainFlutterWindow: NSWindow {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 33CC10FB2044A3C60003C045 /* Build configuration list for PBXNativeTarget "Runner" */;
 			buildPhases = (
+				5E526CB28E432957334BF75B /* [CP] Check Pods Manifest.lock */,
 				33CC10E92044A3C60003C045 /* Sources */,
 				33CC10EA2044A3C60003C045 /* Frameworks */,
 				33CC10EB2044A3C60003C045 /* Resources */,
 				33CC110E2044A8840003C045 /* Bundle Framework */,
 				3399D490228B24CF009A79C7 /* ShellScript */,
+				ADFEBF5EF10D041755DF4CB7 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -629,6 +1112,67 @@ class MainFlutterWindow: NSWindow {
 			shellPath = /bin/sh;
 			shellScript = "\"$FLUTTER_ROOT\"/packages/flutter_tools/bin/macos_assemble.sh && touch Flutter/ephemeral/tripwire";
 		};
+		5E526CB28E432957334BF75B /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-Runner-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+		ADFEBF5EF10D041755DF4CB7 /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		F164A6FA13ADA0783DBCD933 /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-RunnerTests-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -680,6 +1224,7 @@ class MainFlutterWindow: NSWindow {
 /* Begin XCBuildConfiguration section */
 		331C80DB294CF71000263BE5 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 3BCB0B28C9572BB2F2D82D30 /* Pods-RunnerTests.debug.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CURRENT_PROJECT_VERSION = 1;
@@ -694,6 +1239,7 @@ class MainFlutterWindow: NSWindow {
 		};
 		331C80DC294CF71000263BE5 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = CE291F5148654E0B7998BA6F /* Pods-RunnerTests.release.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CURRENT_PROJECT_VERSION = 1;
@@ -708,6 +1254,7 @@ class MainFlutterWindow: NSWindow {
 		};
 		331C80DD294CF71000263BE5 /* Profile */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = E4ED7308576CA4E07C0EC5DB /* Pods-RunnerTests.profile.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CURRENT_PROJECT_VERSION = 1;
@@ -1127,6 +1674,9 @@ class MainFlutterWindow: NSWindow {
    <FileRef
       location = "group:Runner.xcodeproj">
    </FileRef>
+   <FileRef
+      location = "group:Pods/Pods.xcodeproj">
+   </FileRef>
 </Workspace>
 
 ```
@@ -1414,24 +1964,284 @@ class X509ResValue {
 ```swift
 import Cocoa
 import FlutterMacOS
+import Security
 
 public class X509CertStorePlugin: NSObject, FlutterPlugin {
   public static func register(with registrar: FlutterPluginRegistrar) {
-    let channel = FlutterMethodChannel(name: "x509_cert_store", binaryMessenger: registrar.messenger)
+    let channel = FlutterMethodChannel(name: "io.github.kihyun1998/x509_cert_store", binaryMessenger: registrar.messenger)
     let instance = X509CertStorePlugin()
     registrar.addMethodCallDelegate(instance, channel: channel)
   }
 
   public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
-    case "getPlatformVersion":
-      result("macOS " + ProcessInfo.processInfo.operatingSystemVersionString)
+    case "addCertificate":
+      guard let args = call.arguments as? [String: Any],
+            let storeName = args["storeName"] as? String,
+            let certificateData = args["certificate"] as? FlutterStandardTypedData,
+            let addType = args["addType"] as? Int else {
+        // Return error in the format expected by Dart when arguments are missing or invalid
+        result(FlutterError(code: "INVALID_ARGUMENT", message: "Missing or invalid arguments", details: nil))
+        return
+      }
+      
+      // Try to add the certificate
+      do {
+        let success = try addCertificateToKeychain(
+          storeName: storeName,
+          certificateData: certificateData.data,
+          addType: addType
+        )
+        
+        // On success
+        if success {
+          result(true)
+        } else {
+          // Unknown failure — usually this line is not reached
+          result(FlutterError(code: "UNKNOWN_ERROR", message: "Failed to add certificate", details: nil))
+        }
+      } catch CertificateError.alreadyExists {
+        // Handle duplicate certificate with known error code
+        result(FlutterError(code: "2148081669", message: "Certificate already exists", details: nil))
+      } catch CertificateError.securityError(let code) {
+        // Include Security framework error code
+        result(FlutterError(code: "\(code)", message: "Security framework error: \(code)", details: nil))
+      } catch {
+        // Other unexpected errors
+        result(FlutterError(code: "UNEXPECTED_ERROR", message: "An unexpected error occurred: \(error)", details: nil))
+      }
+      
     default:
       result(FlutterMethodNotImplemented)
     }
   }
-}
+  
+  // Define error types
+  enum CertificateError: Error {
+    case invalidData
+    case alreadyExists
+    case securityError(OSStatus)
+  }
 
+  private func addCertificateToKeychain(storeName: String, certificateData: Data, addType: Int) throws -> Bool {
+    // Define constants with clear names
+    let CERT_STORE_ADD_NEW = 1
+    let CERT_STORE_ADD_REPLACE_EXISTING = 3
+    let CERT_STORE_ADD_NEWER = 6
+    
+    // 1. Check if the certificate is in PEM format and convert to DER if necessary
+    let certData = prepareCertificateData(certificateData)
+    
+    // 2. Create SecCertificate object
+    guard let certificate = SecCertificateCreateWithData(nil, certData as CFData) else {
+        throw CertificateError.invalidData
+    }
+
+    // 3. Handle based on addType
+    if addType == CERT_STORE_ADD_NEW {
+        // For CERT_STORE_ADD_NEW: Check if certificate exists. If yes, throw error. If no, add it.
+        if certificateExists(certificate: certificate) {
+            throw CertificateError.alreadyExists
+        }
+        // Will add the certificate below
+    } else if addType == CERT_STORE_ADD_REPLACE_EXISTING {
+        // For CERT_STORE_ADD_REPLACE_EXISTING: Delete existing certificate if it exists
+        let deleteQuery: [String: Any] = [
+            kSecClass as String: kSecClassCertificate,
+            kSecValueRef as String: certificate
+        ]
+        
+        _ = SecItemDelete(deleteQuery as CFDictionary)
+    } else if addType == CERT_STORE_ADD_NEWER {
+        // For CERT_STORE_ADD_NEWER: Check if certificate exists
+        if let existing = findExistingCertificate(byCert: certificate) {
+            // Compare certificates to see if the new one is newer
+            if !isNewerCertificate(newCert: certificate, existingCert: existing) {
+                // If the new certificate is not newer, don't add it and return success
+                return true
+            }
+            
+            // If the new certificate is newer, delete the existing one
+            let deleteQuery: [String: Any] = [
+                kSecClass as String: kSecClassCertificate,
+                kSecValueRef as String: existing
+            ]
+            
+            _ = SecItemDelete(deleteQuery as CFDictionary)
+        }
+        // If no existing certificate or if the new one is newer, continue to add the new certificate
+    }
+    
+    // 4. Prepare query for adding the certificate to the keychain
+    let query: [String: Any] = [
+        kSecClass as String: kSecClassCertificate,
+        kSecValueRef as String: certificate,
+        kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock
+    ]
+    
+    // 5. Add the certificate
+    let status = SecItemAdd(query as CFDictionary, nil)
+    
+    if status == errSecSuccess {
+        return true
+    } else if status == errSecDuplicateItem {
+        throw CertificateError.alreadyExists
+    } else {
+        throw CertificateError.securityError(status)
+    }
+  }
+
+  // Get existing certificate if it exists
+  private func getExistingCertificate(for certificate: SecCertificate) -> SecCertificate? {
+      let existingQuery: [String: Any] = [
+          kSecClass as String: kSecClassCertificate,
+          kSecValueRef as String: certificate,
+          kSecReturnRef as String: true
+      ]
+      
+      var existingItem: CFTypeRef?
+      
+      return SecItemCopyMatching(existingQuery as CFDictionary, &existingItem) == errSecSuccess 
+          ? (existingItem as! SecCertificate) 
+          : nil
+  }
+
+  private func findExistingCertificate(byCert certificate: SecCertificate) -> SecCertificate? {
+      guard let newData = SecCertificateCopyData(certificate) as Data? else {
+          return nil
+      }
+      
+      let query: [String: Any] = [
+          kSecClass as String: kSecClassCertificate,
+          kSecReturnRef as String: true,
+          kSecMatchLimit as String: kSecMatchLimitAll
+      ]
+      
+      var result: CFTypeRef?
+      let status = SecItemCopyMatching(query as CFDictionary, &result)
+      guard status == errSecSuccess, let result = result else { return nil }
+      
+      var certs: [SecCertificate] = []
+      
+      // 1. CFArray인지 확인
+      if CFGetTypeID(result) == CFArrayGetTypeID() {
+          let array = unsafeBitCast(result, to: NSArray.self)
+          for item in array {
+              if CFGetTypeID(item as CFTypeRef) == SecCertificateGetTypeID() {
+                  certs.append(item as! SecCertificate)
+              }
+          }
+      }
+      // 2. 단일 SecCertificate인 경우
+      else if CFGetTypeID(result) == SecCertificateGetTypeID() {
+          certs = [unsafeBitCast(result, to: SecCertificate.self)]
+      }
+
+      for existing in certs {
+          if let data = SecCertificateCopyData(existing) as Data?,
+            data == newData {
+              return existing
+          }
+      }
+
+      return nil
+  }
+
+
+
+
+  // Check if certificate already exists in the keychain
+  private func certificateExists(certificate: SecCertificate) -> Bool {
+    // 비교 대상 DER 데이터 추출
+    guard let certData = SecCertificateCopyData(certificate) as Data? else {
+        return false
+    }
+    
+    // Keychain에서 모든 Certificate 아이템의 DER 데이터를 요청
+    let query: [String: Any] = [
+        kSecClass as String: kSecClassCertificate,
+        kSecReturnData as String: kSecReturnData,
+        kSecMatchLimit as String: kSecMatchLimitAll
+    ]
+    
+    var result: CFTypeRef?
+    let status = SecItemCopyMatching(query as CFDictionary, &result)
+    guard status == errSecSuccess,
+          let dataArray = result as? [Data] else {
+        return false
+    }
+    
+    // 기존에 등록된 DER 데이터 중 하나라도 일치하면 true
+    return dataArray.contains(certData)
+  }
+
+
+
+
+  // 새 인증서가 기존 인증서보다 최신인지 확인 (만료 날짜 기준)
+  private func isNewerCertificate(newCert: SecCertificate, existingCert: SecCertificate) -> Bool {
+      // 인증서에서 속성 dictionary를 가져옴
+      var error: Unmanaged<CFError>?
+      
+      // 인증서 속성을 가져옴
+      guard let newProps = SecCertificateCopyValues(newCert, nil, &error) as? [CFString: Any] else {
+          return false
+      }
+      
+      error = nil // error 재사용
+      
+      guard let existingProps = SecCertificateCopyValues(existingCert, nil, &error) as? [CFString: Any] else {
+          return false
+      }
+      
+      // 유효기간 시작일 키
+      let validityStartKey = kSecOIDX509V1ValidityNotBefore
+
+      // 시작 날짜 정보 가져오기
+      guard let newValidityData = newProps[validityStartKey] as? [CFString: Any],
+            let existingValidityData = existingProps[validityStartKey] as? [CFString: Any] else {
+          return false
+      }
+
+      let valueKey = kSecPropertyKeyValue
+
+      guard let newValidityValue = newValidityData[valueKey],
+            let existingValidityValue = existingValidityData[valueKey] else {
+          return false
+      }
+
+      guard let newDate = newValidityValue as? Date,
+            let existingDate = existingValidityValue as? Date else {
+          return false
+      }
+
+      // 시작일 기준 비교: 새 인증서가 더 늦게 시작되면 최신으로 간주
+      return newDate > existingDate
+
+  }
+  
+  private func prepareCertificateData(_ data: Data) -> Data {
+    // Check if the data is in PEM format
+    if let dataString = String(data: data, encoding: .utf8),
+       dataString.contains("-----BEGIN CERTIFICATE-----") {
+      
+      // Remove PEM headers/footers and base64 decode
+      var pemString = dataString
+      pemString = pemString.replacingOccurrences(of: "-----BEGIN CERTIFICATE-----", with: "")
+      pemString = pemString.replacingOccurrences(of: "-----END CERTIFICATE-----", with: "")
+      pemString = pemString.replacingOccurrences(of: "\n", with: "")
+      pemString = pemString.replacingOccurrences(of: "\r", with: "")
+      pemString = pemString.trimmingCharacters(in: .whitespacesAndNewlines)
+      
+      if let derData = Data(base64Encoded: pemString) {
+        return derData
+      }
+    }
+    
+    // Return original data if already in DER format or conversion fails
+    return data
+  }
+}
 ```
 ## macos/Resources/PrivacyInfo.xcprivacy
 ```xcprivacy
@@ -1476,12 +2286,26 @@ A new Flutter plugin project.
   # s.resource_bundles = {'x509_cert_store_privacy' => ['Resources/PrivacyInfo.xcprivacy']}
 
   s.dependency 'FlutterMacOS'
+  s.framework = 'Security'
 
   s.platform = :osx, '10.11'
   s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES' }
   s.swift_version = '5.0'
 end
 
+```
+## openssl.md
+```md
+```bash
+openssl req -x509 -newkey rsa:2048 -sha256 -days 365 -nodes \
+  -keyout mycompany.key -out mycompany.crt \
+  -subj "/CN=mycompany.com" \
+  -addext "subjectAltName=DNS:mycompany.com,DNS:www.mycompany.com"
+```
+
+```bash
+openssl x509 -in mycompany.crt -outform DER | base64
+```
 ```
 ## test/x509_cert_store_method_channel_test.dart
 ```dart
