@@ -1,32 +1,33 @@
 # X509 Certificate Store
 
-A Flutter plugin for Windows desktop applications that enables adding X.509 certificates to the local certificate store. This plugin provides a simple and efficient way to manage certificates in Windows environments.
+A Flutter plugin for Windows and macOS desktop applications that enables adding X.509 certificates to the local certificate store. This plugin provides a simple and efficient way to manage certificates in desktop environments.
 
 [![pub package](https://img.shields.io/pub/v/x509_cert_store.svg)](https://pub.dev/packages/x509_cert_store)
 
 ## Features
 
-- Add certificates to the Windows certificate store
-- Support for multiple store locations (ROOT, MY)
+- Add certificates to the Windows certificate store and macOS Keychain
+- Support for multiple store locations (ROOT, MY) on Windows
 - Various certificate addition types:
   - Add new certificates only
   - Add newer versions of certificates
   - Replace existing certificates
 - Comprehensive error handling with descriptive error codes
+- Automatic PEM/DER format detection and conversion
 
 ## Platform Support
 
 | macOS | Windows | Linux |
 |:-----:|:-------:|:-----:|
-|   🔜   |    ✅    |   🔜   |
+|   ✅   |    ✅    |   🔜   |
 
-macOS and Linux support coming soon!
+Linux support coming soon!
 
 ## Installation
 
 ```yaml
 dependencies:
-  x509_cert_store: ^1.0.0
+  x509_cert_store: ^1.1.0
 ```
 
 Or run:
@@ -34,6 +35,30 @@ Or run:
 ```
 flutter pub add x509_cert_store
 ```
+
+## Platform-specific Setup
+
+### macOS Setup
+
+To use this plugin on macOS, you need to add the Keychain access entitlement to your app:
+
+1. Add the following to your `macos/Runner/DebugProfile.entitlements` and `macos/Runner/Release.entitlements` files:
+
+```xml
+<key>com.apple.security.keychain</key>
+<true/>
+```
+
+2. If you are creating a new macOS app, make sure to enable the App Sandbox as well:
+
+```xml
+<key>com.apple.security.app-sandbox</key>
+<true/>
+```
+
+### Windows Setup
+
+No additional setup is required for Windows.
 
 ## Usage
 
@@ -105,12 +130,40 @@ Common error codes that might be returned.
 - `alreadyExist` - The certificate already exists in the store
 - `unknown` - An unknown error occurred
 
+## Platform-specific Behavior
+
+### macOS
+
+On macOS, certificates are added to the user's login Keychain regardless of the `X509StoreName` value provided. The `storeName` parameter is effectively ignored on macOS since macOS uses a different certificate management system than Windows. Key points for macOS:
+
+- All certificates are added to the login Keychain by default
+- The user may be prompted to enter their password to allow the application to modify the Keychain
+- Certificate storage location cannot be specified like in Windows (ROOT/MY distinction doesn't apply)
+- Error codes may differ between platforms, but the plugin normalizes them for consistent error handling
+
+### Windows
+
+On Windows, certificates are added to the Windows Certificate Store according to the `X509StoreName` value specified:
+
+- `X509StoreName.root` adds to the Trusted Root Certification Authorities store
+- `X509StoreName.my` adds to the Personal Certificate store
+- Depending on the certificate and store location, users may see a security prompt asking for confirmation
+- Administrator privileges may be required for adding certificates to certain stores
+
 ## Example
 
 Check the `/example` folder for a complete implementation demonstrating:
 - Adding certificates with different addition types
 - Proper error handling
 - Creating certificate files from base64 strings
+- Platform-specific configurations
+
+## Notes for Developers
+
+If you're contributing to this plugin or integrating it into your application, note that:
+
+1. For macOS, the plugin requires Keychain access, which is enabled through entitlements
+2. For Windows, the plugin uses the Windows CryptoAPI
 
 ## License
 

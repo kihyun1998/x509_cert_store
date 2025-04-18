@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.1.0
+
+- Added macOS platform support
+- Implemented certificate management on macOS:
+  - Support for adding certificates to the macOS Keychain
+  - Automatic conversion between PEM and DER formats on macOS
+  - Certificate duplicate detection and management
+  - Proper error handling with descriptive error codes
+- Updated documentation to reflect macOS support
+- Code organization improvements for cross-platform support
+
 ## 1.0.0
 
 - First stable release

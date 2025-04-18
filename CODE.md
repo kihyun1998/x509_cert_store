@@ -2046,12 +2046,17 @@ public class X509CertStorePlugin: NSObject, FlutterPlugin {
         // Will add the certificate below
     } else if addType == CERT_STORE_ADD_REPLACE_EXISTING {
         // For CERT_STORE_ADD_REPLACE_EXISTING: Delete existing certificate if it exists
-        let deleteQuery: [String: Any] = [
-            kSecClass as String: kSecClassCertificate,
-            kSecValueRef as String: certificate
-        ]
-        
-        _ = SecItemDelete(deleteQuery as CFDictionary)
+        if let existingCert = findExistingCertificate(certificate: certificate) {
+          let deleteQuery: [String: Any] = [
+              kSecClass as String: kSecClassCertificate,
+              kSecValueRef as String: existingCert
+          ]
+
+          let deleteStatus = SecItemDelete(deleteQuery as CFDictionary)
+          if deleteStatus != errSecSuccess {
+              throw CertificateError.securityError(deleteStatus)
+          }
+        } 
     } else if addType == CERT_STORE_ADD_NEWER {
         // For CERT_STORE_ADD_NEWER: Check if certificate exists
         if let existing = findExistingCertificate(certificate: certificate) {
@@ -2146,8 +2151,6 @@ public class X509CertStorePlugin: NSObject, FlutterPlugin {
       return false
   }
 
-
-
   func findExistingCertificate(certificate: SecCertificate) -> SecCertificate? {
       guard let certIssuer = SecCertificateCopyNormalizedIssuerSequence(certificate) as Data?,
             let certSerial = SecCertificateCopySerialNumberData(certificate, nil) as Data? else {
@@ -2170,29 +2173,25 @@ public class X509CertStorePlugin: NSObject, FlutterPlugin {
       return nil
   }
 
-
-
-
-  // 새 인증서가 기존 인증서보다 최신인지 확인 (만료 날짜 기준)
+  // Check if the new certificate is newer than the existing one (based on expiration date)
   private func isNewerCertificate(newCert: SecCertificate, existingCert: SecCertificate) -> Bool {
-      // 인증서에서 속성 dictionary를 가져옴
       var error: Unmanaged<CFError>?
       
-      // 인증서 속성을 가져옴
+      // Load attributes from the new certificate
       guard let newProps = SecCertificateCopyValues(newCert, nil, &error) as? [CFString: Any] else {
           return false
       }
       
-      error = nil // error 재사용
+      error = nil // Reuse the error variable
       
       guard let existingProps = SecCertificateCopyValues(existingCert, nil, &error) as? [CFString: Any] else {
           return false
       }
       
-      // 유효기간 시작일 키
+      // Key for the "not before" validity date
       let validityStartKey = kSecOIDX509V1ValidityNotBefore
 
-      // 시작 날짜 정보 가져오기
+      // Get the start date for each certificate
       guard let newValidityData = newProps[validityStartKey] as? [CFString: Any],
             let existingValidityData = existingProps[validityStartKey] as? [CFString: Any] else {
           return false
@@ -2210,9 +2209,8 @@ public class X509CertStorePlugin: NSObject, FlutterPlugin {
           return false
       }
 
-      // 시작일 기준 비교: 새 인증서가 더 늦게 시작되면 최신으로 간주
+      // Compare using the start date: if new certificate starts later, consider it newer
       return newDate > existingDate
-
   }
   
   private func prepareCertificateData(_ data: Data) -> Data {
@@ -2220,7 +2218,7 @@ public class X509CertStorePlugin: NSObject, FlutterPlugin {
     if let dataString = String(data: data, encoding: .utf8),
        dataString.contains("-----BEGIN CERTIFICATE-----") {
       
-      // Remove PEM headers/footers and base64 decode
+      // Strip PEM headers/footers and decode from Base64
       var pemString = dataString
       pemString = pemString.replacingOccurrences(of: "-----BEGIN CERTIFICATE-----", with: "")
       pemString = pemString.replacingOccurrences(of: "-----END CERTIFICATE-----", with: "")
@@ -2233,10 +2231,11 @@ public class X509CertStorePlugin: NSObject, FlutterPlugin {
       }
     }
     
-    // Return original data if already in DER format or conversion fails
+    // Return original data if it's already in DER format or conversion fails
     return data
   }
 }
+
 ```
 ## macos/Resources/PrivacyInfo.xcprivacy
 ```xcprivacy
