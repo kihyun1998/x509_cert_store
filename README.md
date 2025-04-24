@@ -27,7 +27,7 @@ Linux support coming soon!
 
 ```yaml
 dependencies:
-  x509_cert_store: ^1.1.0
+  x509_cert_store: ^1.1.1
 ```
 
 Or run:
