@@ -1,3 +1,7 @@
+## 1.1.2
+
+- update license
+
 ## 1.1.1
 
 - Raised macOS deployment target to 10.13 for CocoaPods compatibility.
