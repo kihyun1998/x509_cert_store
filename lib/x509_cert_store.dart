@@ -1,21 +1,37 @@
-import 'package:x509_cert_store/x509_cert_store_enum.dart';
-import 'package:x509_cert_store/x509_cert_store_return_class.dart';
+/// A Flutter plugin for managing X.509 certificates in platform certificate stores.
+///
+/// This plugin provides a cross-platform API for adding X.509 certificates
+/// to the operating system's certificate stores with support for different
+/// certificate stores and addition behaviors.
+///
+/// ## Quick Start
+///
+/// ```dart
+/// import 'package:x509_cert_store/x509_cert_store.dart';
+///
+/// final certStore = X509CertStore();
+///
+/// final result = await certStore.addCertificate(
+///   storeName: X509StoreName.my,
+///   certificateBase64: 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMI...',
+///   addType: X509AddType.addNew,
+/// );
+///
+/// if (result.isOk) {
+///   print('Certificate added successfully');
+/// } else {
+///   print('Error: ${result.msg}');
+/// }
+/// ```
+///
+/// ## Supported Platforms
+///
+/// - macOS (Keychain integration)
+/// - Windows (planned)
+/// - Linux (planned)
+library x509_cert_store;
 
-import 'x509_cert_store_platform_interface.dart';
-
-export 'package:x509_cert_store/x509_cert_store_enum.dart';
-export 'package:x509_cert_store/x509_cert_store_return_class.dart';
-
-class X509CertStore {
-  Future<X509ResValue> addCertificate({
-    required X509StoreName storeName,
-    required String certificateBase64,
-    required X509AddType addType,
-  }) {
-    return X509CertStorePlatform.instance.addCertificate(
-      storeName: storeName,
-      certificateBase64: certificateBase64,
-      addType: addType,
-    );
-  }
-}
+// Export all public APIs
+export 'src/x509_cert_store.dart';
+export 'src/x509_res_result.dart';
+export 'src/x509_store_enums.dart';

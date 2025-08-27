@@ -9,7 +9,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:x509_cert_store/x509_cert_store.dart';
-import 'package:x509_cert_store/x509_cert_store_enum.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
