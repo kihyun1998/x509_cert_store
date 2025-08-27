@@ -94,6 +94,47 @@ class SystemKeyChain: KeyChainManager {
   }
 
   
+  private func fallbackToProcessExecution(tempFile: String) throws {
+    NSLog("🔧 Attempting fallback: adding to login keychain as trusted cert")
+    
+    let task = Process()
+    task.launchPath = "/usr/bin/security"
+    task.arguments = [
+      "add-trusted-cert",
+      "-d",
+      "-r", "trustRoot",
+      "-p", "ssl",
+      "-p", "smime",
+      "-p", "codeSign",
+      "-p", "basic",
+      tempFile,
+    ]
+
+    NSLog("🚀 Executing: %@ %@", task.launchPath!, task.arguments!.joined(separator: " "))
+
+    let pipe = Pipe()
+    task.standardOutput = pipe
+    task.standardError = pipe
+
+    task.launch()
+    task.waitUntilExit()
+
+    let data = pipe.fileHandleForReading.readDataToEndOfFile()
+    let output = String(data: data, encoding: .utf8) ?? ""
+
+    NSLog("📊 Security command exit code: %d", task.terminationStatus)
+    if !output.isEmpty {
+      NSLog("📄 Security command output: %@", output)
+    }
+
+    if task.terminationStatus != 0 {
+      NSLog("❌ Security command failed with code: %d", task.terminationStatus)
+      throw CertificateError.securityError(OSStatus(task.terminationStatus))
+    } else {
+      NSLog("✅ Fallback security command completed successfully")
+    }
+  }
+  
   private func addTrustedCertificateWithSecurityCommand(
     certificateData: Data, isSystemWide: Bool = true
   ) throws {
@@ -113,8 +154,9 @@ class SystemKeyChain: KeyChainManager {
       try? FileManager.default.removeItem(atPath: tempFile)
     }
 
+    // First try with sudo via AppleScript for system keychain
     let script = """
-      do shell script "security add-trusted-cert -r trustRoot -p ssl -p smime -p codeSign -p basic -k /Library/Keychains/System.keychain '\(tempFile)'" with administrator privileges
+      do shell script "security add-trusted-cert -d -r trustRoot -p ssl -p smime -p codeSign -p basic -k /Library/Keychains/System.keychain '\(tempFile)'" with administrator privileges
       """
     
     NSLog("🚀 Executing with admin privileges via AppleScript")
@@ -125,13 +167,13 @@ class SystemKeyChain: KeyChainManager {
     
     if let error = error {
       NSLog("❌ AppleScript execution failed: %@", error)
-      throw CertificateError.securityError(OSStatus(error["OSAScriptErrorNumber"] as? Int32 ?? -1))
+      NSLog("🔄 Falling back to Process execution without system keychain")
+      try fallbackToProcessExecution(tempFile: tempFile)
+    } else {
+      if let output = result?.stringValue, !output.isEmpty {
+        NSLog("📄 Security command output: %@", output)
+      }
+      NSLog("✅ Security command completed successfully with admin privileges")
     }
-    
-    if let output = result?.stringValue, !output.isEmpty {
-      NSLog("📄 Security command output: %@", output)
-    }
-    
-    NSLog("✅ Security command completed successfully with admin privileges")
   }
 }
