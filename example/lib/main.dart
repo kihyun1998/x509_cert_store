@@ -40,6 +40,7 @@ class _CertificateManagerPageState extends State<CertificateManagerPage> {
 
   X509StoreName _selectedStore = X509StoreName.root;
   X509AddType _selectedAddType = X509AddType.addNew;
+  bool _setTrusted = false;
 
   String _statusMessage = '';
   bool _isSuccess = false;
@@ -111,29 +112,48 @@ class _CertificateManagerPageState extends State<CertificateManagerPage> {
                 "Certificate Store Location:",
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
-              Row(
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8.0,
                 children: [
-                  Radio<X509StoreName>(
-                    value: X509StoreName.root,
-                    groupValue: _selectedStore,
-                    onChanged: (X509StoreName? value) {
-                      setState(() {
-                        _selectedStore = value!;
-                      });
+                  FilterChip(
+                    label: const Text('ROOT Store'),
+                    selected: _selectedStore == X509StoreName.root,
+                    showCheckmark: false,
+                    onSelected: (selected) {
+                      if (selected) {
+                        setState(() {
+                          _selectedStore = X509StoreName.root;
+                        });
+                      }
                     },
+                    avatar: Icon(
+                      Icons.security,
+                      size: 18,
+                      color: _selectedStore == X509StoreName.root 
+                          ? Theme.of(context).colorScheme.onSecondaryContainer
+                          : null,
+                    ),
                   ),
-                  const Text('ROOT Store'),
-                  const SizedBox(width: 20),
-                  Radio<X509StoreName>(
-                    value: X509StoreName.my,
-                    groupValue: _selectedStore,
-                    onChanged: (X509StoreName? value) {
-                      setState(() {
-                        _selectedStore = value!;
-                      });
+                  FilterChip(
+                    label: const Text('MY Store (Personal)'),
+                    selected: _selectedStore == X509StoreName.my,
+                    showCheckmark: false,
+                    onSelected: (selected) {
+                      if (selected) {
+                        setState(() {
+                          _selectedStore = X509StoreName.my;
+                        });
+                      }
                     },
+                    avatar: Icon(
+                      Icons.person,
+                      size: 18,
+                      color: _selectedStore == X509StoreName.my 
+                          ? Theme.of(context).colorScheme.onSecondaryContainer
+                          : null,
+                    ),
                   ),
-                  const Text('MY Store (Personal)'),
                 ],
               ),
               const SizedBox(height: 16),
@@ -143,50 +163,186 @@ class _CertificateManagerPageState extends State<CertificateManagerPage> {
                 "Certificate Addition Type:",
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
-              DropdownButtonFormField<X509AddType>(
-                value: _selectedAddType,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                ),
-                items: const [
-                  DropdownMenuItem(
-                    value: X509AddType.addNew,
-                    child: Row(
-                      children: [
-                        Icon(Icons.new_label, size: 16),
-                        SizedBox(width: 8),
-                        Text('Add New (Only if not exists)'),
-                      ],
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8.0,
+                runSpacing: 4.0,
+                children: [
+                  FilterChip(
+                    label: const Text('Add New'),
+                    selected: _selectedAddType == X509AddType.addNew,
+                    showCheckmark: false,
+                    onSelected: (selected) {
+                      if (selected) {
+                        setState(() {
+                          _selectedAddType = X509AddType.addNew;
+                        });
+                      }
+                    },
+                    avatar: Icon(
+                      Icons.new_label,
+                      size: 18,
+                      color: _selectedAddType == X509AddType.addNew 
+                          ? Theme.of(context).colorScheme.onSecondaryContainer
+                          : null,
                     ),
+                    tooltip: 'Only if not exists',
                   ),
-                  DropdownMenuItem(
-                    value: X509AddType.addNewer,
-                    child: Row(
-                      children: [
-                        Icon(Icons.upgrade, size: 16),
-                        SizedBox(width: 8),
-                        Text('Add Newer (Only if newer)'),
-                      ],
+                  FilterChip(
+                    label: const Text('Add Newer'),
+                    selected: _selectedAddType == X509AddType.addNewer,
+                    showCheckmark: false,
+                    onSelected: (selected) {
+                      if (selected) {
+                        setState(() {
+                          _selectedAddType = X509AddType.addNewer;
+                        });
+                      }
+                    },
+                    avatar: Icon(
+                      Icons.upgrade,
+                      size: 18,
+                      color: _selectedAddType == X509AddType.addNewer 
+                          ? Theme.of(context).colorScheme.onSecondaryContainer
+                          : null,
                     ),
+                    tooltip: 'Only if newer',
                   ),
-                  DropdownMenuItem(
-                    value: X509AddType.addReplaceExisting,
-                    child: Row(
-                      children: [
-                        Icon(Icons.published_with_changes, size: 16),
-                        SizedBox(width: 8),
-                        Text('Replace (Overwrite existing)'),
-                      ],
+                  FilterChip(
+                    label: const Text('Replace'),
+                    selected: _selectedAddType == X509AddType.addReplaceExisting,
+                    showCheckmark: false,
+                    onSelected: (selected) {
+                      if (selected) {
+                        setState(() {
+                          _selectedAddType = X509AddType.addReplaceExisting;
+                        });
+                      }
+                    },
+                    avatar: Icon(
+                      Icons.published_with_changes,
+                      size: 18,
+                      color: _selectedAddType == X509AddType.addReplaceExisting 
+                          ? Theme.of(context).colorScheme.onSecondaryContainer
+                          : null,
                     ),
+                    tooltip: 'Overwrite existing',
                   ),
                 ],
-                onChanged: (X509AddType? value) {
-                  setState(() {
-                    _selectedAddType = value!;
-                  });
-                },
+              ),
+              const SizedBox(height: 16),
+
+              // Trust Settings Section
+              const Text(
+                "Trust Settings:",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            _setTrusted ? Icons.verified : Icons.security,
+                            color: _setTrusted ? Colors.green : Colors.orange,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _setTrusted 
+                                ? 'Set as trusted certificate' 
+                                : 'Add certificate without trust settings',
+                            style: const TextStyle(fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _setTrusted 
+                            ? 'The certificate will be added and marked as trusted for SSL, S/MIME, and code signing.'
+                            : 'The certificate will be added to the store but won\'t be automatically trusted.',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8.0,
+                        children: [
+                          FilterChip(
+                            label: const Text('No Trust'),
+                            selected: !_setTrusted,
+                            showCheckmark: false,
+                            onSelected: (selected) {
+                              if (selected) {
+                                setState(() {
+                                  _setTrusted = false;
+                                });
+                              }
+                            },
+                            avatar: Icon(
+                              Icons.security,
+                              size: 18,
+                              color: !_setTrusted 
+                                  ? Theme.of(context).colorScheme.onSecondaryContainer
+                                  : null,
+                            ),
+                          ),
+                          FilterChip(
+                            label: const Text('Set Trusted'),
+                            selected: _setTrusted,
+                            showCheckmark: false,
+                            onSelected: (selected) {
+                              if (selected) {
+                                setState(() {
+                                  _setTrusted = true;
+                                });
+                              }
+                            },
+                            avatar: Icon(
+                              Icons.verified,
+                              size: 18,
+                              color: _setTrusted 
+                                  ? Theme.of(context).colorScheme.onSecondaryContainer
+                                  : null,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (_setTrusted && _selectedStore == X509StoreName.root)
+                        Container(
+                          margin: const EdgeInsets.only(top: 8),
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.admin_panel_settings, 
+                                  size: 16, color: Colors.orange),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Admin privileges required for system-wide trust settings',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.orange.shade700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ),
               const SizedBox(height: 24),
 
@@ -277,12 +433,20 @@ class _CertificateManagerPageState extends State<CertificateManagerPage> {
                 child: _isLoading
                     ? const CircularProgressIndicator()
                     : ElevatedButton.icon(
-                        icon: const Icon(Icons.security),
-                        label: const Text('Add Certificate to Store'),
+                        icon: Icon(_setTrusted ? Icons.verified : Icons.security),
+                        label: Text(_setTrusted 
+                            ? 'Add Trusted Certificate to Store' 
+                            : 'Add Certificate to Store'),
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 24, vertical: 12),
                           textStyle: const TextStyle(fontSize: 16),
+                          backgroundColor: _setTrusted 
+                              ? Colors.green.shade600 
+                              : null,
+                          foregroundColor: _setTrusted 
+                              ? Colors.white 
+                              : null,
                         ),
                         onPressed: _addCertificate,
                       ),
@@ -472,11 +636,13 @@ class _CertificateManagerPageState extends State<CertificateManagerPage> {
       print("🔒 Adding certificate to ${Platform.operatingSystem} store...");
       print("   Store: ${_selectedStore.getString()}");
       print("   Mode: ${_selectedAddType.toString().split('.').last}");
+      print("   Trusted: $_setTrusted");
 
       final result = await x509CertStorePlugin.addCertificate(
         storeName: _selectedStore,
         certificateBase64: certificateBase64,
         addType: _selectedAddType,
+        setTrusted: _setTrusted,
       );
 
       _handleCertificateResult(result);
