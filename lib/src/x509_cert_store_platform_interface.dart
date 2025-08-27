@@ -42,6 +42,7 @@ abstract class X509CertStorePlatform extends PlatformInterface {
   /// - [storeName]: The target certificate store (root, my, etc.)
   /// - [certificateBase64]: The certificate data encoded as base64
   /// - [addType]: Controls the addition behavior (add new, replace existing, etc.)
+  /// - [setTrusted]: Whether to set the certificate as trusted (default: false)
   ///
   /// Returns a [Future] that completes with an [X509ResValue] indicating
   /// whether the operation succeeded or failed. On failure, the result
@@ -55,10 +56,19 @@ abstract class X509CertStorePlatform extends PlatformInterface {
   ///
   /// Example:
   /// ```dart
+  /// // Add certificate without trust settings
   /// final result = await X509CertStorePlatform.instance.addCertificate(
   ///   storeName: X509StoreName.my,
   ///   certificateBase64: 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMI...',
   ///   addType: X509AddType.addNew,
+  /// );
+  ///
+  /// // Add certificate and set as trusted
+  /// final trustedResult = await X509CertStorePlatform.instance.addCertificate(
+  ///   storeName: X509StoreName.root,
+  ///   certificateBase64: 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMI...',
+  ///   addType: X509AddType.addNew,
+  ///   setTrusted: true,
   /// );
   ///
   /// if (result.isOk) {
@@ -71,6 +81,7 @@ abstract class X509CertStorePlatform extends PlatformInterface {
     required X509StoreName storeName,
     required String certificateBase64,
     required X509AddType addType,
+    bool setTrusted = false,
   }) {
     throw UnimplementedError('addCertificate() has not been implemented.');
   }

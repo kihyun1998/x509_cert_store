@@ -15,7 +15,7 @@ import 'x509_store_enums.dart' show X509StoreName, X509AddType;
 ///
 /// The method channel protocol:
 /// - Method name: 'addCertificate'
-/// - Parameters: storeName (String), certificate (Uint8List), addType (int)
+/// - Parameters: storeName (String), certificate (Uint8List), addType (int), setTrusted (bool)
 /// - Return: bool (true on success) or PlatformException on failure
 class MethodChannelX509CertStore extends X509CertStorePlatform {
   /// The method channel used to interact with the native platform.
@@ -31,6 +31,7 @@ class MethodChannelX509CertStore extends X509CertStorePlatform {
     required X509StoreName storeName,
     required String certificateBase64,
     required X509AddType addType,
+    bool setTrusted = false,
   }) async {
     try {
       // Decode the base64 certificate data to bytes
@@ -43,6 +44,7 @@ class MethodChannelX509CertStore extends X509CertStorePlatform {
           'storeName': storeName.getString(),
           'certificate': certificateBytes,
           'addType': addType.getCode(),
+          'setTrusted': setTrusted,
         },
       );
 

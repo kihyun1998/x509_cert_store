@@ -28,11 +28,19 @@ import 'x509_store_enums.dart' show X509AddType, X509StoreName;
 ///
 /// final certStore = X509CertStore();
 ///
-/// // Add a certificate to the personal store
+/// // Add a certificate to the personal store (without trust settings)
 /// final result = await certStore.addCertificate(
 ///   storeName: X509StoreName.my,
 ///   certificateBase64: 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMI...',
 ///   addType: X509AddType.addNew,
+/// );
+///
+/// // Add a trusted certificate to the root store
+/// final trustedResult = await certStore.addCertificate(
+///   storeName: X509StoreName.root,
+///   certificateBase64: 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMI...',
+///   addType: X509AddType.addNew,
+///   setTrusted: true,
 /// );
 ///
 /// if (result.isOk) {
@@ -54,6 +62,7 @@ class X509CertStore {
   /// - [storeName]: The target certificate store where the certificate should be added
   /// - [certificateBase64]: The certificate data encoded as base64 string
   /// - [addType]: Controls the behavior when a certificate with the same identity already exists
+  /// - [setTrusted]: Whether to set the certificate as trusted (default: false)
   ///
   /// Returns a [Future] that resolves to an [X509ResValue] containing:
   /// - Success status ([X509ResValue.isOk])
@@ -117,11 +126,13 @@ class X509CertStore {
     required X509StoreName storeName,
     required String certificateBase64,
     required X509AddType addType,
+    bool setTrusted = false,
   }) {
     return X509CertStorePlatform.instance.addCertificate(
       storeName: storeName,
       certificateBase64: certificateBase64,
       addType: addType,
+      setTrusted: setTrusted,
     );
   }
 }

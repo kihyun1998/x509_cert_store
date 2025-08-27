@@ -19,7 +19,7 @@ extension Data {
 
 class SystemKeyChain: KeyChainManager {
 
-  func addCertificate(certificateData: Data, addType: Int) throws -> Bool {
+  func addCertificate(certificateData: Data, addType: Int, setTrusted: Bool = false) throws -> Bool {
     let certData = CertificateUtils.prepareCertificateData(certificateData)
 
     guard let certificate = SecCertificateCreateWithData(nil, certData as CFData) else {
@@ -66,12 +66,16 @@ class SystemKeyChain: KeyChainManager {
     let status = SecItemAdd(query as CFDictionary, nil)
 
     if status == errSecSuccess {
-      do {
-        try addTrustedCertificateWithSecurityCommand(certificateData: certData, isSystemWide: true)
-      } catch {
-        NSLog(
-          "⚠️ Warning: Certificate added but system-wide trust setting failed: %@",
-          error.localizedDescription)
+      if setTrusted {
+        do {
+          try addTrustedCertificateWithSecurityCommand(certificateData: certData, isSystemWide: true)
+        } catch {
+          NSLog(
+            "⚠️ Warning: Certificate added but system-wide trust setting failed: %@",
+            error.localizedDescription)
+        }
+      } else {
+        NSLog("ℹ️ Certificate added without trust settings as requested")
       }
       return true
     } else if status == errSecDuplicateItem {

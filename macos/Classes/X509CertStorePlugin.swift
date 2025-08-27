@@ -28,12 +28,15 @@ public class X509CertStorePlugin: NSObject, FlutterPlugin {
         return
       }
 
+      let setTrusted = args["setTrusted"] as? Bool ?? false
+
       // Try to add the certificate
       do {
         let keyChainManager = getKeyChainManager(for: storeName)
         let success = try keyChainManager.addCertificate(
           certificateData: certificateData.data,
-          addType: addType
+          addType: addType,
+          setTrusted: setTrusted
         )
 
         // On success

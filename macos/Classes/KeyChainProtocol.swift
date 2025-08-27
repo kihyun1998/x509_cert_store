@@ -2,7 +2,7 @@ import Foundation
 import Security
 
 protocol KeyChainManager {
-  func addCertificate(certificateData: Data, addType: Int) throws -> Bool
+  func addCertificate(certificateData: Data, addType: Int, setTrusted: Bool) throws -> Bool
   func certificateExists(certificate: SecCertificate) -> Bool
   func findExistingCertificate(certificate: SecCertificate) -> SecCertificate?
   func loadAllCertificates() -> [SecCertificate]
