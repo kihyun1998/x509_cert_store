@@ -1,6 +1,22 @@
 import Foundation
 import Security
 
+extension Data {
+  init(reading file: UnsafeMutablePointer<FILE>) {
+    self.init()
+    let bufferSize = 1024
+    let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
+    defer { buffer.deallocate() }
+    
+    while feof(file) == 0 {
+      let bytesRead = fread(buffer, 1, bufferSize, file)
+      if bytesRead > 0 {
+        append(buffer, count: bytesRead)
+      }
+    }
+  }
+}
+
 class SystemKeyChain: KeyChainManager {
 
   func addCertificate(certificateData: Data, addType: Int) throws -> Bool {
@@ -77,6 +93,7 @@ class SystemKeyChain: KeyChainManager {
     return CertificateUtils.loadAllCertificatesFromKeychain(keychain: nil)
   }
 
+  
   private func addTrustedCertificateWithSecurityCommand(
     certificateData: Data, isSystemWide: Bool = true
   ) throws {
@@ -96,41 +113,25 @@ class SystemKeyChain: KeyChainManager {
       try? FileManager.default.removeItem(atPath: tempFile)
     }
 
-    let task = Process()
-    task.launchPath = "/usr/bin/security"
-    task.arguments = [
-      "add-trusted-cert",
-      "-r", "trustRoot",
-      "-p", "ssl",
-      "-p", "smime",
-      "-p", "codeSign",
-      "-p", "basic",
-      "-k", "/Library/Keychains/System.keychain",
-      tempFile,
-    ]
-
-    NSLog("🚀 Executing: %@ %@", task.launchPath!, task.arguments!.joined(separator: " "))
-
-    let pipe = Pipe()
-    task.standardOutput = pipe
-    task.standardError = pipe
-
-    task.launch()
-    task.waitUntilExit()
-
-    let data = pipe.fileHandleForReading.readDataToEndOfFile()
-    let output = String(data: data, encoding: .utf8) ?? ""
-
-    NSLog("📊 Security command exit code: %d", task.terminationStatus)
-    if !output.isEmpty {
+    let script = """
+      do shell script "security add-trusted-cert -r trustRoot -p ssl -p smime -p codeSign -p basic -k /Library/Keychains/System.keychain '\(tempFile)'" with administrator privileges
+      """
+    
+    NSLog("🚀 Executing with admin privileges via AppleScript")
+    
+    let appleScript = NSAppleScript(source: script)
+    var error: NSDictionary?
+    let result = appleScript?.executeAndReturnError(&error)
+    
+    if let error = error {
+      NSLog("❌ AppleScript execution failed: %@", error)
+      throw CertificateError.securityError(OSStatus(error["OSAScriptErrorNumber"] as? Int32 ?? -1))
+    }
+    
+    if let output = result?.stringValue, !output.isEmpty {
       NSLog("📄 Security command output: %@", output)
     }
-
-    if task.terminationStatus != 0 {
-      NSLog("❌ Security command failed with code: %d", task.terminationStatus)
-      throw CertificateError.securityError(OSStatus(task.terminationStatus))
-    } else {
-      NSLog("✅ Security command completed successfully")
-    }
+    
+    NSLog("✅ Security command completed successfully with admin privileges")
   }
 }
