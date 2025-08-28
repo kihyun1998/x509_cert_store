@@ -54,11 +54,8 @@ class LoginKeyChain: KeyChainManager {
         do {
           try addTrustedCertificateWithSecurityCommand(certificateData: certData, isSystemWide: false)
         } catch {
-          NSLog(
-            "⚠️ Warning: Certificate added but trust setting failed: %@", error.localizedDescription)
         }
       } else {
-        NSLog("ℹ️ Certificate added without trust settings as requested")
       }
       return true
     } else if status == errSecDuplicateItem {
@@ -88,10 +85,6 @@ class LoginKeyChain: KeyChainManager {
 
     let pemData = CertificateUtils.convertDERToPEM(certificateData)
 
-    NSLog(
-      "🔐 Attempting to set trust settings using security command (System-wide: %@)",
-      isSystemWide ? "YES" : "NO")
-    NSLog("📁 Temporary file: %@", tempFile)
 
     try pemData.write(to: URL(fileURLWithPath: tempFile))
 
@@ -112,7 +105,6 @@ class LoginKeyChain: KeyChainManager {
       tempFile,
     ]
 
-    NSLog("🚀 Executing: %@ %@", task.launchPath!, task.arguments!.joined(separator: " "))
 
     let pipe = Pipe()
     task.standardOutput = pipe
@@ -124,16 +116,12 @@ class LoginKeyChain: KeyChainManager {
     let data = pipe.fileHandleForReading.readDataToEndOfFile()
     let output = String(data: data, encoding: .utf8) ?? ""
 
-    NSLog("📊 Security command exit code: %d", task.terminationStatus)
     if !output.isEmpty {
-      NSLog("📄 Security command output: %@", output)
     }
 
     if task.terminationStatus != 0 {
-      NSLog("❌ Security command failed with code: %d", task.terminationStatus)
       throw CertificateError.securityError(OSStatus(task.terminationStatus))
     } else {
-      NSLog("✅ Security command completed successfully")
     }
   }
 }

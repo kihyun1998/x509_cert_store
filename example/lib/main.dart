@@ -324,10 +324,10 @@ class _CertificateManagerPageState extends State<CertificateManagerPage> {
                           margin: const EdgeInsets.only(top: 8),
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: Colors.orange.withOpacity(0.1),
+                            color: Colors.orange.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(4),
                             border: Border.all(
-                                color: Colors.orange.withOpacity(0.3)),
+                                color: Colors.orange.withValues(alpha: 0.3)),
                           ),
                           child: Row(
                             children: [
@@ -463,8 +463,8 @@ class _CertificateManagerPageState extends State<CertificateManagerPage> {
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: _isSuccess
-                        ? Colors.green.withOpacity(0.1)
-                        : Colors.red.withOpacity(0.1),
+                        ? Colors.green.withValues(alpha: 0.1)
+                        : Colors.red.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
                       color: _isSuccess ? Colors.green : Colors.red,
@@ -636,11 +636,6 @@ class _CertificateManagerPageState extends State<CertificateManagerPage> {
     try {
       final certificateBase64 =
           _certificateController.text.replaceAll(RegExp(r'\s+'), '');
-
-      print("🔒 Adding certificate to ${Platform.operatingSystem} store...");
-      print("   Store: ${_selectedStore.getString()}");
-      print("   Mode: ${_selectedAddType.toString().split('.').last}");
-      print("   Trusted: $_setTrusted");
 
       final result = await x509CertStorePlugin.addCertificate(
         storeName: _selectedStore,

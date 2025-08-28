@@ -32,7 +32,6 @@ class SystemKeyChain: KeyChainManager {
       }
     } else if addType == CertificateAddType.CERT_STORE_ADD_REPLACE_EXISTING {
       if let existingCert = findExistingCertificate(certificate: certificate) {
-        NSLog("🗑️ Found existing certificate, attempting to delete...")
         let deleteQuery: [String: Any] = [
           kSecClass as String: kSecClassCertificate,
           kSecValueRef as String: existingCert,
@@ -40,35 +39,20 @@ class SystemKeyChain: KeyChainManager {
 
         let deleteStatus = SecItemDelete(deleteQuery as CFDictionary)
         if deleteStatus != errSecSuccess {
-          NSLog("❌ Failed to delete existing certificate: %d", deleteStatus)
           throw CertificateError.securityError(deleteStatus)
-        } else {
-          NSLog("✅ Successfully deleted existing certificate")
         }
-      } else {
-        NSLog("ℹ️ No existing certificate found to replace")
-      }
     } else if addType == CertificateAddType.CERT_STORE_ADD_NEWER {
       if let existing = findExistingCertificate(certificate: certificate) {
         if !CertificateUtils.isNewerCertificate(newCert: certificate, existingCert: existing) {
-          NSLog("ℹ️ Existing certificate is not older, skipping replacement")
           return true
         }
 
-        NSLog("🗑️ Found older certificate, attempting to delete...")
         let deleteQuery: [String: Any] = [
           kSecClass as String: kSecClassCertificate,
           kSecValueRef as String: existing,
         ]
 
         let deleteStatus = SecItemDelete(deleteQuery as CFDictionary)
-        if deleteStatus == errSecSuccess {
-          NSLog("✅ Successfully deleted older certificate")
-        } else {
-          NSLog("⚠️ Failed to delete older certificate: %d", deleteStatus)
-        }
-      } else {
-        NSLog("ℹ️ No existing certificate found for newer check")
       }
     }
 
@@ -85,12 +69,8 @@ class SystemKeyChain: KeyChainManager {
         do {
           try addTrustedCertificateWithSecurityCommand(certificateData: certData, isSystemWide: true)
         } catch {
-          NSLog(
-            "⚠️ Warning: Certificate added but system-wide trust setting failed: %@",
-            error.localizedDescription)
+          // Trust setting failed, but certificate was added
         }
-      } else {
-        NSLog("ℹ️ Certificate added without trust settings as requested")
       }
       return true
     } else if status == errSecDuplicateItem {
@@ -114,7 +94,6 @@ class SystemKeyChain: KeyChainManager {
 
   
   private func fallbackToProcessExecution(tempFile: String) throws {
-    NSLog("🔧 Attempting fallback: adding to login keychain as trusted cert")
     
     let task = Process()
     task.launchPath = "/usr/bin/security"
@@ -129,7 +108,6 @@ class SystemKeyChain: KeyChainManager {
       tempFile,
     ]
 
-    NSLog("🚀 Executing: %@ %@", task.launchPath!, task.arguments!.joined(separator: " "))
 
     let pipe = Pipe()
     task.standardOutput = pipe
@@ -141,16 +119,9 @@ class SystemKeyChain: KeyChainManager {
     let data = pipe.fileHandleForReading.readDataToEndOfFile()
     let output = String(data: data, encoding: .utf8) ?? ""
 
-    NSLog("📊 Security command exit code: %d", task.terminationStatus)
-    if !output.isEmpty {
-      NSLog("📄 Security command output: %@", output)
-    }
 
     if task.terminationStatus != 0 {
-      NSLog("❌ Security command failed with code: %d", task.terminationStatus)
       throw CertificateError.securityError(OSStatus(task.terminationStatus))
-    } else {
-      NSLog("✅ Fallback security command completed successfully")
     }
   }
   
@@ -162,10 +133,6 @@ class SystemKeyChain: KeyChainManager {
 
     let pemData = CertificateUtils.convertDERToPEM(certificateData)
 
-    NSLog(
-      "🔐 Attempting to set trust settings using security command (System-wide: %@)",
-      isSystemWide ? "YES" : "NO")
-    NSLog("📁 Temporary file: %@", tempFile)
 
     try pemData.write(to: URL(fileURLWithPath: tempFile))
 
@@ -178,21 +145,13 @@ class SystemKeyChain: KeyChainManager {
       do shell script "security add-trusted-cert -d -r trustRoot -p ssl -p smime -p codeSign -p basic -k /Library/Keychains/System.keychain '\(tempFile)'" with administrator privileges
       """
     
-    NSLog("🚀 Executing with admin privileges via AppleScript")
     
     let appleScript = NSAppleScript(source: script)
     var error: NSDictionary?
     let result = appleScript?.executeAndReturnError(&error)
     
     if let error = error {
-      NSLog("❌ AppleScript execution failed: %@", error)
-      NSLog("🔄 Falling back to Process execution without system keychain")
       try fallbackToProcessExecution(tempFile: tempFile)
-    } else {
-      if let output = result?.stringValue, !output.isEmpty {
-        NSLog("📄 Security command output: %@", output)
-      }
-      NSLog("✅ Security command completed successfully with admin privileges")
     }
   }
 }
