@@ -29,7 +29,7 @@ Linux support coming soon!
 
 ```yaml
 dependencies:
-  x509_cert_store: ^1.2.0
+  x509_cert_store: ^1.2.1
 ```
 
 Or run:
@@ -42,21 +42,23 @@ flutter pub add x509_cert_store
 
 ### macOS Setup
 
-To use this plugin on macOS, you need to add the Keychain access entitlement to your app:
+To use this plugin on macOS, you need to configure the entitlements properly:
 
-1. Add the following to your `macos/Runner/DebugProfile.entitlements` and `macos/Runner/Release.entitlements` files:
+1. **Disable App Sandbox** in your `macos/Runner/*.entitlements` files (DebugProfile.entitlements, Release.entitlements):
+
+```xml
+<key>com.apple.security.app-sandbox</key>
+<false/>
+```
+
+2. Add the Keychain access entitlement:
 
 ```xml
 <key>com.apple.security.keychain</key>
 <true/>
 ```
 
-2. If you are creating a new macOS app, make sure to enable the App Sandbox as well:
-
-```xml
-<key>com.apple.security.app-sandbox</key>
-<true/>
-```
+**Note:** The App Sandbox must be set to `false` to allow proper certificate operations and trust settings configuration.
 
 ### Windows Setup
 

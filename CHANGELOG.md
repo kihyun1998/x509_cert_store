@@ -1,3 +1,10 @@
+## 1.2.1
+
+### Fixed
+- Fixed Swift compilation errors in macOS implementation
+- Corrected protocol conformance issues in SystemKeyChain class
+- Fixed missing bracket in certificate deletion logic
+
 ## 1.2.0
 
 ### Added
