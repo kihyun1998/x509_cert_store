@@ -70,43 +70,6 @@ class _CertificateManagerPageState extends State<CertificateManagerPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Platform info card
-              Card(
-                margin: const EdgeInsets.only(bottom: 16.0),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Platform.isWindows
-                            ? Icons.window
-                            : Platform.isMacOS
-                                ? Icons.laptop_mac
-                                : Icons.devices,
-                        size: 36,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                      const SizedBox(width: 16),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Platform: ${Platform.operatingSystem}",
-                            style: const TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.bold),
-                          ),
-                          Text(
-                            "Version: ${Platform.operatingSystemVersion}",
-                            style: TextStyle(
-                                color: Theme.of(context).colorScheme.secondary),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
               // Certificate Storage Location
               const Text(
                 "Certificate Store Location:",
