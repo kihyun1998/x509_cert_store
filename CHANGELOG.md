@@ -1,3 +1,19 @@
+## 1.2.0
+
+### Added
+- Certificate trust functionality for macOS platform (using `setTrusted` parameter)
+- Enhanced certificate management with trust settings support on macOS
+- Comprehensive certificate existence checking with keychain-specific operations
+
+### Fixed  
+- Fixed certificate addition issues on macOS that were preventing certificates from being added properly
+- Improved certificate duplicate detection and replacement logic
+- Enhanced error handling and logging for better debugging
+
+### Improved
+- Implemented fallback mechanisms for certificate trust operations when system-level permissions are not available
+- Added detailed logging for certificate operations to help with troubleshooting
+
 ## 1.1.3
 
 - update license

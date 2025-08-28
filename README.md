@@ -7,13 +7,15 @@ A Flutter plugin for Windows and macOS desktop applications that enables adding 
 ## Features
 
 - Add certificates to the Windows certificate store and macOS Keychain
-- Support for multiple store locations (ROOT, MY) on Windows
+- **Certificate trust settings support** - Optionally configure certificates as trusted (macOS only) using `setTrusted` parameter
+- Support for multiple store locations (ROOT, MY) on Windows and macOS Keychain stores
 - Various certificate addition types:
   - Add new certificates only
   - Add newer versions of certificates
   - Replace existing certificates
 - Comprehensive error handling with descriptive error codes
 - Automatic PEM/DER format detection and conversion
+- Enhanced certificate management with improved duplicate detection
 
 ## Platform Support
 
@@ -27,7 +29,7 @@ Linux support coming soon!
 
 ```yaml
 dependencies:
-  x509_cert_store: ^1.1.3
+  x509_cert_store: ^1.2.0
 ```
 
 Or run:
@@ -71,12 +73,13 @@ final x509CertStore = X509CertStore();
 // Sample certificate in base64 format
 const String certificateBase64 = "MIIDKjCCAhKgAwIBAgIQFSHum2++9bhOXjAo4Z7...";
 
-// Add a certificate to the ROOT store
+// Add a certificate to the ROOT store with trust settings
 try {
   final result = await x509CertStore.addCertificate(
     storeName: X509StoreName.root,
     certificateBase64: certificateBase64,
     addType: X509AddType.addNew,
+    setTrusted: true,  // NEW: Configure certificate as trusted (macOS only, ignored on Windows)
   );
   
   if (result.isOk) {
@@ -104,8 +107,14 @@ The main class for interacting with the certificate store.
 
 #### Methods
 
-- `Future<X509ResValue> addCertificate({required X509StoreName storeName, required String certificateBase64, required X509AddType addType})`  
-  Adds a certificate to the specified certificate store.
+- `Future<X509ResValue> addCertificate({required X509StoreName storeName, required String certificateBase64, required X509AddType addType, bool setTrusted = false})`  
+  Adds a certificate to the specified certificate store with optional trust settings.
+  
+  **Parameters:**
+  - `storeName` - The target certificate store (ROOT or MY)
+  - `certificateBase64` - The certificate in base64 format
+  - `addType` - How to handle the certificate addition
+  - `setTrusted` - Whether to configure the certificate as trusted (**macOS only**, ignored on Windows)
 
 ### X509StoreName (enum)
 
@@ -134,19 +143,22 @@ Common error codes that might be returned.
 
 ### macOS
 
-On macOS, certificates are added to the user's login Keychain regardless of the `X509StoreName` value provided. The `storeName` parameter is effectively ignored on macOS since macOS uses a different certificate management system than Windows. Key points for macOS:
+On macOS, certificates are managed through the Keychain system with support for both system and login keychains:
 
-- All certificates are added to the login Keychain by default
+- `X509StoreName.root` adds certificates to the **System Keychain** (requires admin privileges)
+- `X509StoreName.my` adds certificates to the **Login Keychain** (user-level access)
+- **Trust Settings**: When `setTrusted: true` is explicitly specified, the certificate will be configured as a trusted certificate (default is `false`)
+- **Fallback Mechanism**: If system-level trust configuration fails (due to permissions), the plugin automatically falls back to adding trusted certificates to the login keychain
 - The user may be prompted to enter their password to allow the application to modify the Keychain
-- Certificate storage location cannot be specified like in Windows (ROOT/MY distinction doesn't apply)
-- Error codes may differ between platforms, but the plugin normalizes them for consistent error handling
+- Enhanced certificate management with improved duplicate detection and replacement logic
 
 ### Windows
 
 On Windows, certificates are added to the Windows Certificate Store according to the `X509StoreName` value specified:
 
-- `X509StoreName.root` adds to the Trusted Root Certification Authorities store
-- `X509StoreName.my` adds to the Personal Certificate store
+- `X509StoreName.root` adds to the **Trusted Root Certification Authorities store** (automatically trusted)
+- `X509StoreName.my` adds to the **Personal Certificate store**
+- **Trust Settings**: The `setTrusted` parameter is ignored on Windows as certificates added to the ROOT store are automatically trusted by the system
 - Depending on the certificate and store location, users may see a security prompt asking for confirmation
 - Administrator privileges may be required for adding certificates to certain stores
 

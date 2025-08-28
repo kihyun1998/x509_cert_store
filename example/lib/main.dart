@@ -130,7 +130,7 @@ class _CertificateManagerPageState extends State<CertificateManagerPage> {
                     avatar: Icon(
                       Icons.security,
                       size: 18,
-                      color: _selectedStore == X509StoreName.root 
+                      color: _selectedStore == X509StoreName.root
                           ? Theme.of(context).colorScheme.onSecondaryContainer
                           : null,
                     ),
@@ -149,7 +149,7 @@ class _CertificateManagerPageState extends State<CertificateManagerPage> {
                     avatar: Icon(
                       Icons.person,
                       size: 18,
-                      color: _selectedStore == X509StoreName.my 
+                      color: _selectedStore == X509StoreName.my
                           ? Theme.of(context).colorScheme.onSecondaryContainer
                           : null,
                     ),
@@ -182,7 +182,7 @@ class _CertificateManagerPageState extends State<CertificateManagerPage> {
                     avatar: Icon(
                       Icons.new_label,
                       size: 18,
-                      color: _selectedAddType == X509AddType.addNew 
+                      color: _selectedAddType == X509AddType.addNew
                           ? Theme.of(context).colorScheme.onSecondaryContainer
                           : null,
                     ),
@@ -202,7 +202,7 @@ class _CertificateManagerPageState extends State<CertificateManagerPage> {
                     avatar: Icon(
                       Icons.upgrade,
                       size: 18,
-                      color: _selectedAddType == X509AddType.addNewer 
+                      color: _selectedAddType == X509AddType.addNewer
                           ? Theme.of(context).colorScheme.onSecondaryContainer
                           : null,
                     ),
@@ -210,7 +210,8 @@ class _CertificateManagerPageState extends State<CertificateManagerPage> {
                   ),
                   FilterChip(
                     label: const Text('Replace'),
-                    selected: _selectedAddType == X509AddType.addReplaceExisting,
+                    selected:
+                        _selectedAddType == X509AddType.addReplaceExisting,
                     showCheckmark: false,
                     onSelected: (selected) {
                       if (selected) {
@@ -222,7 +223,7 @@ class _CertificateManagerPageState extends State<CertificateManagerPage> {
                     avatar: Icon(
                       Icons.published_with_changes,
                       size: 18,
-                      color: _selectedAddType == X509AddType.addReplaceExisting 
+                      color: _selectedAddType == X509AddType.addReplaceExisting
                           ? Theme.of(context).colorScheme.onSecondaryContainer
                           : null,
                     ),
@@ -253,8 +254,8 @@ class _CertificateManagerPageState extends State<CertificateManagerPage> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            _setTrusted 
-                                ? 'Set as trusted certificate' 
+                            _setTrusted
+                                ? 'Set as trusted certificate'
                                 : 'Add certificate without trust settings',
                             style: const TextStyle(fontWeight: FontWeight.w500),
                           ),
@@ -262,7 +263,7 @@ class _CertificateManagerPageState extends State<CertificateManagerPage> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        _setTrusted 
+                        _setTrusted
                             ? 'The certificate will be added and marked as trusted for SSL, S/MIME, and code signing.'
                             : 'The certificate will be added to the store but won\'t be automatically trusted.',
                         style: TextStyle(
@@ -288,8 +289,10 @@ class _CertificateManagerPageState extends State<CertificateManagerPage> {
                             avatar: Icon(
                               Icons.security,
                               size: 18,
-                              color: !_setTrusted 
-                                  ? Theme.of(context).colorScheme.onSecondaryContainer
+                              color: !_setTrusted
+                                  ? Theme.of(context)
+                                      .colorScheme
+                                      .onSecondaryContainer
                                   : null,
                             ),
                           ),
@@ -307,8 +310,10 @@ class _CertificateManagerPageState extends State<CertificateManagerPage> {
                             avatar: Icon(
                               Icons.verified,
                               size: 18,
-                              color: _setTrusted 
-                                  ? Theme.of(context).colorScheme.onSecondaryContainer
+                              color: _setTrusted
+                                  ? Theme.of(context)
+                                      .colorScheme
+                                      .onSecondaryContainer
                                   : null,
                             ),
                           ),
@@ -321,11 +326,12 @@ class _CertificateManagerPageState extends State<CertificateManagerPage> {
                           decoration: BoxDecoration(
                             color: Colors.orange.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(4),
-                            border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                            border: Border.all(
+                                color: Colors.orange.withOpacity(0.3)),
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.admin_panel_settings, 
+                              const Icon(Icons.admin_panel_settings,
                                   size: 16, color: Colors.orange),
                               const SizedBox(width: 8),
                               Expanded(
@@ -433,20 +439,18 @@ class _CertificateManagerPageState extends State<CertificateManagerPage> {
                 child: _isLoading
                     ? const CircularProgressIndicator()
                     : ElevatedButton.icon(
-                        icon: Icon(_setTrusted ? Icons.verified : Icons.security),
-                        label: Text(_setTrusted 
-                            ? 'Add Trusted Certificate to Store' 
+                        icon:
+                            Icon(_setTrusted ? Icons.verified : Icons.security),
+                        label: Text(_setTrusted
+                            ? 'Add Trusted Certificate to Store'
                             : 'Add Certificate to Store'),
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 24, vertical: 12),
                           textStyle: const TextStyle(fontSize: 16),
-                          backgroundColor: _setTrusted 
-                              ? Colors.green.shade600 
-                              : null,
-                          foregroundColor: _setTrusted 
-                              ? Colors.white 
-                              : null,
+                          backgroundColor:
+                              _setTrusted ? Colors.green.shade600 : null,
+                          foregroundColor: _setTrusted ? Colors.white : null,
                         ),
                         onPressed: _addCertificate,
                       ),
