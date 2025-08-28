@@ -68,6 +68,7 @@ std::vector<BYTE> ConvertPemToDer(const std::vector<BYTE>& inputData) {
 }
 
 // add cert func
+// Note: setTrusted parameter is not supported on Windows - certificates added to ROOT store are automatically trusted
 bool AddCertificateToStore(
     const std::string& storeName, 
     std::vector<BYTE>& certificateData, 
@@ -191,6 +192,8 @@ void X509CertStorePlugin::HandleMethodCall(
       auto storeName = std::get<std::string>(storeNameIter->second);
       auto certificate = std::get<std::vector<uint8_t>>(certificateIter->second);
       auto addType = std::get<int>(addTypeIter->second);
+      
+      // Note: setTrusted parameter is ignored on Windows - ROOT store certificates are automatically trusted
       
       // add certificate
       std::string errorCode, errorMessage;

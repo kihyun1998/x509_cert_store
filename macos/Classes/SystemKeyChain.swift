@@ -32,6 +32,7 @@ class SystemKeyChain: KeyChainManager {
       }
     } else if addType == CertificateAddType.CERT_STORE_ADD_REPLACE_EXISTING {
       if let existingCert = findExistingCertificate(certificate: certificate) {
+        NSLog("🗑️ Found existing certificate, attempting to delete...")
         let deleteQuery: [String: Any] = [
           kSecClass as String: kSecClassCertificate,
           kSecValueRef as String: existingCert,
@@ -39,21 +40,35 @@ class SystemKeyChain: KeyChainManager {
 
         let deleteStatus = SecItemDelete(deleteQuery as CFDictionary)
         if deleteStatus != errSecSuccess {
+          NSLog("❌ Failed to delete existing certificate: %d", deleteStatus)
           throw CertificateError.securityError(deleteStatus)
+        } else {
+          NSLog("✅ Successfully deleted existing certificate")
         }
+      } else {
+        NSLog("ℹ️ No existing certificate found to replace")
       }
     } else if addType == CertificateAddType.CERT_STORE_ADD_NEWER {
       if let existing = findExistingCertificate(certificate: certificate) {
         if !CertificateUtils.isNewerCertificate(newCert: certificate, existingCert: existing) {
+          NSLog("ℹ️ Existing certificate is not older, skipping replacement")
           return true
         }
 
+        NSLog("🗑️ Found older certificate, attempting to delete...")
         let deleteQuery: [String: Any] = [
           kSecClass as String: kSecClassCertificate,
           kSecValueRef as String: existing,
         ]
 
-        _ = SecItemDelete(deleteQuery as CFDictionary)
+        let deleteStatus = SecItemDelete(deleteQuery as CFDictionary)
+        if deleteStatus == errSecSuccess {
+          NSLog("✅ Successfully deleted older certificate")
+        } else {
+          NSLog("⚠️ Failed to delete older certificate: %d", deleteStatus)
+        }
+      } else {
+        NSLog("ℹ️ No existing certificate found for newer check")
       }
     }
 
