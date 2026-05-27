@@ -3,3 +3,8 @@ codemd-windows-amd64.exe
 codemd-darwin-amd64
 .codeignore
 openssl.md
+
+# AI / internal docs — not for pub consumers
+CLAUDE.md
+CONTEXT.md
+docs/
