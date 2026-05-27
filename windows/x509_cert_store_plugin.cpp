@@ -20,7 +20,7 @@ namespace x509_cert_store {
 
 // Map a Win32 / wincrypt errcode to an X509ErrorCode category key.
 //
-// Returns std::nullopt for unmapped codes — the failure then surfaces as
+// Returns std::nullopt for unmapped codes - the failure then surfaces as
 // "unknown" with nativeCode preserved for diagnostics.
 std::optional<std::string> MapWinErrorToCategory(DWORD code) {
   switch (code) {
@@ -36,7 +36,7 @@ std::optional<std::string> MapWinErrorToCategory(DWORD code) {
 }
 
 // Choose the category key from a raw Win32 errcode. Always returns a
-// non-empty key — unmapped errors collapse to "unknown".
+// non-empty key - unmapped errors collapse to "unknown".
 std::string CategoryFromWinError(DWORD code) {
   return MapWinErrorToCategory(code).value_or("unknown");
 }
@@ -46,7 +46,7 @@ std::string CategoryFromWinError(DWORD code) {
 // `category` is one of the X509ErrorCode keys ("canceled" / "alreadyExist"
 // / "accessDenied" / "invalidFormat" / "unknown"). `details.nativeCode` is
 // populated only when `category == "unknown"` and a raw Win32 errcode
-// applies — for matched categories it is null, since the consumer already
+// applies - for matched categories it is null, since the consumer already
 // gets the typed enum value.
 void SendErrorResponse(
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>>& result,
@@ -102,7 +102,7 @@ std::vector<BYTE> ConvertPemToDer(const std::vector<BYTE>& inputData) {
 // - `nativeCode`: the raw Win32 error (0 when no native error applies, e.g.
 //   the PEM/DER conversion path)
 //
-// Note: setTrusted is not supported on Windows — ROOT store certs are
+// Note: setTrusted is not supported on Windows - ROOT store certs are
 // automatically trusted by the system.
 bool AddCertificateToStore(
     const std::string& storeName,

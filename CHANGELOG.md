@@ -1,3 +1,8 @@
+## 2.0.1
+
+### Fixed
+- Windows: removed non-ASCII em-dash characters from `x509_cert_store_plugin.cpp` comments. On hosts whose system codepage cannot represent them (e.g. Korean Windows / CP949), MSVC raised `C4819` and Flutter's default `/WX` escalated it to `C2220`, breaking the build for any downstream app using this plugin.
+
 ## 2.0.0
 
 ### BREAKING CHANGES
