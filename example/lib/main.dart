@@ -569,19 +569,24 @@ class _CertificateManagerPageState extends State<CertificateManagerPage> {
     }
   }
 
-  void _handleCertificateResult(X509ResValue result) {
+  void _handleCertificateResult(X509Result result) {
     setState(() {
       _isLoading = false;
-      _isSuccess = result.isOk;
-      _statusMessage = result.msg;
-      _errorCode = result.code;
-
-      // Add additional context to common error codes
-      if (result.hasError(X509ErrorCode.alreadyExist)) {
-        _statusMessage =
-            "Certificate already exists in the store. To replace it, use the 'Replace' mode.";
-      } else if (result.hasError(X509ErrorCode.canceled)) {
-        _statusMessage = "User canceled the certificate addition process.";
+      switch (result) {
+        case X509Success():
+          _isSuccess = true;
+          _statusMessage = 'Certificate added successfully';
+          _errorCode = 'SUCCESS';
+        case X509Failure(code: final code, :final msg):
+          _isSuccess = false;
+          _errorCode = code.name;
+          _statusMessage = switch (code) {
+            X509ErrorCode.alreadyExist =>
+              "Certificate already exists in the store. To replace it, use the 'Replace' mode.",
+            X509ErrorCode.canceled =>
+              "User canceled the certificate addition process.",
+            _ => msg,
+          };
       }
     });
   }

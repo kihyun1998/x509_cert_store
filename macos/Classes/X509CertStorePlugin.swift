@@ -5,7 +5,7 @@ import Security
 public class X509CertStorePlugin: NSObject, FlutterPlugin {
   private let loginKeyChain = LoginKeyChain()
   private let systemKeyChain = SystemKeyChain()
-  
+
   public static func register(with registrar: FlutterPluginRegistrar) {
     let channel = FlutterMethodChannel(
       name: "io.github.kihyun1998/x509_cert_store", binaryMessenger: registrar.messenger)
@@ -21,16 +21,12 @@ public class X509CertStorePlugin: NSObject, FlutterPlugin {
         let certificateData = args["certificate"] as? FlutterStandardTypedData,
         let addType = args["addType"] as? Int
       else {
-        // Return error in the format expected by Dart when arguments are missing or invalid
-        result(
-          FlutterError(
-            code: "INVALID_ARGUMENT", message: "Missing or invalid arguments", details: nil))
+        result(Self.failure(message: "Missing or invalid arguments", nativeCode: nil))
         return
       }
 
       let setTrusted = args["setTrusted"] as? Bool ?? false
 
-      // Try to add the certificate
       do {
         let keyChainManager = getKeyChainManager(for: storeName)
         let success = try keyChainManager.addCertificate(
@@ -39,28 +35,29 @@ public class X509CertStorePlugin: NSObject, FlutterPlugin {
           setTrusted: setTrusted
         )
 
-        // On success
         if success {
           result(true)
         } else {
-          // Unknown failure — usually this line is not reached
-          result(
-            FlutterError(code: "UNKNOWN_ERROR", message: "Failed to add certificate", details: nil))
+          // Usually unreachable — the underlying call throws on failure.
+          result(Self.failure(message: "Failed to add certificate", nativeCode: nil))
         }
+      } catch CertificateError.invalidData {
+        result(Self.failure(message: "Invalid certificate data", nativeCode: nil))
       } catch CertificateError.alreadyExists {
-        // Handle duplicate certificate with known error code
-        result(
-          FlutterError(code: "2148081669", message: "Certificate already exists", details: nil))
+        // Either pre-empted by certificateExists() or surfaced as
+        // errSecDuplicateItem from SecItemAdd. Forward the canonical
+        // OSStatus so consumers can diagnose unmapped failures.
+        result(Self.failure(
+          message: "Certificate already exists",
+          nativeCode: Int(errSecDuplicateItem)))
       } catch CertificateError.securityError(let code) {
-        // Include Security framework error code
-        result(
-          FlutterError(code: "\(code)", message: "Security framework error: \(code)", details: nil))
+        result(Self.failure(
+          message: "Security framework error: \(code)",
+          nativeCode: Int(code)))
       } catch {
-        // Other unexpected errors
-        result(
-          FlutterError(
-            code: "UNEXPECTED_ERROR", message: "An unexpected error occurred: \(error)",
-            details: nil))
+        result(Self.failure(
+          message: "An unexpected error occurred: \(error)",
+          nativeCode: nil))
       }
 
     default:
@@ -79,4 +76,15 @@ public class X509CertStorePlugin: NSObject, FlutterPlugin {
     }
   }
 
+  /// Build a FlutterError for the v2.0.0 baseline.
+  ///
+  /// All failures use category "unknown" for now; categorical mapping
+  /// (alreadyExist / canceled / accessDenied / invalidFormat) is added by
+  /// a follow-up slice. The raw native code, when applicable, is forwarded
+  /// via `details.nativeCode` and surfaces as `X509Failure.nativeCode` on
+  /// the Dart side.
+  private static func failure(message: String, nativeCode: Int?) -> FlutterError {
+    let details: [String: Any] = ["nativeCode": nativeCode ?? NSNull()]
+    return FlutterError(code: "unknown", message: message, details: details)
+  }
 }

@@ -14,51 +14,8 @@ void main() {
         .setMockMethodCallHandler(channel, null);
   });
 
-  group('addCertificate error-code mapping', () {
-    test('CRYPT_E_EXISTS round-trips to hasError(alreadyExist)', () async {
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(channel, (call) async {
-        throw PlatformException(
-          code: '2148081669',
-          message:
-              'Failed to add certificate to store (Win32 error 2148081669)',
-        );
-      });
-
-      final result = await certStore.addCertificate(
-        storeName: X509StoreName.root,
-        certificateBase64: dummyCertBase64,
-        addType: X509AddType.addNew,
-      );
-
-      expect(result.isOk, isFalse);
-      expect(result.code, '2148081669');
-      expect(result.hasError(X509ErrorCode.alreadyExist), isTrue);
-      expect(result.hasError(X509ErrorCode.canceled), isFalse);
-    });
-
-    test('ERROR_CANCELLED round-trips to hasError(canceled)', () async {
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(channel, (call) async {
-        throw PlatformException(
-          code: '1223',
-          message: 'Failed to add certificate to store (Win32 error 1223)',
-        );
-      });
-
-      final result = await certStore.addCertificate(
-        storeName: X509StoreName.my,
-        certificateBase64: dummyCertBase64,
-        addType: X509AddType.addNew,
-      );
-
-      expect(result.isOk, isFalse);
-      expect(result.code, '1223');
-      expect(result.hasError(X509ErrorCode.canceled), isTrue);
-      expect(result.hasError(X509ErrorCode.alreadyExist), isFalse);
-    });
-
-    test('Successful native call returns isOk = true', () async {
+  group('addCertificate result mapping', () {
+    test('Success path returns X509Success', () async {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, (call) async => true);
 
@@ -68,8 +25,143 @@ void main() {
         addType: X509AddType.addNew,
       );
 
-      expect(result.isOk, isTrue);
-      expect(result.code, 'SUCCESS');
+      expect(result, isA<X509Success>());
+    });
+
+    test(
+        'PlatformException(code: "unknown", details: {nativeCode: N}) '
+        '→ X509Failure(code: unknown, nativeCode: N)', () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+        throw PlatformException(
+          code: 'unknown',
+          message: 'Failed to add certificate (Win32 error 2148081669)',
+          details: {'nativeCode': 2148081669},
+        );
+      });
+
+      final result = await certStore.addCertificate(
+        storeName: X509StoreName.root,
+        certificateBase64: dummyCertBase64,
+        addType: X509AddType.addNew,
+      );
+
+      expect(result, isA<X509Failure>());
+      final failure = result as X509Failure;
+      expect(failure.code, X509ErrorCode.unknown);
+      expect(failure.nativeCode, 2148081669);
+    });
+
+    test('PlatformException without details → nativeCode is null', () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+        throw PlatformException(
+          code: 'unknown',
+          message: 'Missing arguments',
+        );
+      });
+
+      final result = await certStore.addCertificate(
+        storeName: X509StoreName.my,
+        certificateBase64: dummyCertBase64,
+        addType: X509AddType.addNew,
+      );
+
+      expect(result, isA<X509Failure>());
+      final failure = result as X509Failure;
+      expect(failure.code, X509ErrorCode.unknown);
+      expect(failure.nativeCode, isNull);
+    });
+
+    test('Each category key on PlatformException.code maps to the matching X509ErrorCode',
+        () async {
+      final cases = {
+        'canceled': X509ErrorCode.canceled,
+        'alreadyExist': X509ErrorCode.alreadyExist,
+        'accessDenied': X509ErrorCode.accessDenied,
+        'invalidFormat': X509ErrorCode.invalidFormat,
+        'unknown': X509ErrorCode.unknown,
+        'garbage': X509ErrorCode.unknown, // unrecognized key falls back
+      };
+
+      for (final entry in cases.entries) {
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(channel, (call) async {
+          throw PlatformException(code: entry.key, message: 'test');
+        });
+
+        final result = await certStore.addCertificate(
+          storeName: X509StoreName.my,
+          certificateBase64: dummyCertBase64,
+          addType: X509AddType.addNew,
+        );
+
+        expect(result, isA<X509Failure>(), reason: 'key=${entry.key}');
+        expect((result as X509Failure).code, entry.value,
+            reason: 'key=${entry.key}');
+      }
+    });
+
+    test('Bad base64 input → X509Failure(invalidFormat)', () async {
+      final result = await certStore.addCertificate(
+        storeName: X509StoreName.my,
+        certificateBase64: '!!!not-base64!!!',
+        addType: X509AddType.addNew,
+      );
+
+      expect(result, isA<X509Failure>());
+      expect((result as X509Failure).code, X509ErrorCode.invalidFormat);
+    });
+  });
+
+  group('X509Result pattern matching', () {
+    // Compile-time guarantee: the switch below must cover X509Success and
+    // every X509ErrorCode value to satisfy the sealed-type exhaustiveness
+    // checker. If a new X509ErrorCode is added without updating this test,
+    // the file will fail to compile.
+    String describe(X509Result r) {
+      switch (r) {
+        case X509Success():
+          return 'success';
+        case X509Failure(code: X509ErrorCode.canceled):
+          return 'canceled';
+        case X509Failure(code: X509ErrorCode.alreadyExist):
+          return 'alreadyExist';
+        case X509Failure(code: X509ErrorCode.accessDenied):
+          return 'accessDenied';
+        case X509Failure(code: X509ErrorCode.invalidFormat):
+          return 'invalidFormat';
+        case X509Failure(code: X509ErrorCode.unknown):
+          return 'unknown';
+      }
+    }
+
+    test('exhaustive switch covers success and all five error categories', () {
+      expect(describe(const X509Success()), 'success');
+      expect(
+        describe(const X509Failure(code: X509ErrorCode.canceled, msg: '')),
+        'canceled',
+      );
+      expect(
+        describe(const X509Failure(code: X509ErrorCode.alreadyExist, msg: '')),
+        'alreadyExist',
+      );
+      expect(
+        describe(const X509Failure(code: X509ErrorCode.accessDenied, msg: '')),
+        'accessDenied',
+      );
+      expect(
+        describe(const X509Failure(code: X509ErrorCode.invalidFormat, msg: '')),
+        'invalidFormat',
+      );
+      expect(
+        describe(const X509Failure(
+          code: X509ErrorCode.unknown,
+          msg: '',
+          nativeCode: 42,
+        )),
+        'unknown',
+      );
     });
   });
 }

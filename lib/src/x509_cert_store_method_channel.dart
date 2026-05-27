@@ -5,39 +5,36 @@ import 'package:flutter/services.dart';
 
 import 'x509_cert_store_platform_interface.dart';
 import 'x509_res_result.dart';
-import 'x509_store_enums.dart' show X509StoreName, X509AddType;
+import 'x509_store_enums.dart' show X509StoreName, X509AddType, X509ErrorCode;
 
 /// An implementation of [X509CertStorePlatform] that uses method channels.
 ///
-/// This implementation communicates with platform-specific native code
-/// through Flutter's method channel mechanism. It handles serialization
-/// of method calls and deserialization of responses.
-///
-/// The method channel protocol:
-/// - Method name: 'addCertificate'
-/// - Parameters: storeName (String), certificate (Uint8List), addType (int), setTrusted (bool)
-/// - Return: bool (true on success) or PlatformException on failure
+/// Method-channel protocol:
+/// - Method name: `addCertificate`
+/// - Parameters: `storeName` (String), `certificate` (Uint8List), `addType` (int), `setTrusted` (bool)
+/// - Success: returns `true`
+/// - Failure: throws `PlatformException` where `code` is one of the
+///   category keys (`"canceled"`, `"alreadyExist"`, `"accessDenied"`,
+///   `"invalidFormat"`, `"unknown"`), and `details` is a map that may
+///   contain `nativeCode` (int). Categorical mapping at the native layer
+///   is filled in by a follow-up slice; until then native plugins emit
+///   `code: "unknown"` with `nativeCode` populated.
 class MethodChannelX509CertStore extends X509CertStorePlatform {
   /// The method channel used to interact with the native platform.
-  ///
-  /// This channel is used for all communication between the Dart code
-  /// and the platform-specific native implementations.
   @visibleForTesting
   final methodChannel =
       const MethodChannel('io.github.kihyun1998/x509_cert_store');
 
   @override
-  Future<X509ResValue> addCertificate({
+  Future<X509Result> addCertificate({
     required X509StoreName storeName,
     required String certificateBase64,
     required X509AddType addType,
     bool setTrusted = false,
   }) async {
     try {
-      // Decode the base64 certificate data to bytes
       final certificateBytes = base64.decode(certificateBase64);
 
-      // Invoke the native method with the certificate data
       await methodChannel.invokeMethod<bool>(
         'addCertificate',
         {
@@ -48,30 +45,54 @@ class MethodChannelX509CertStore extends X509CertStorePlatform {
         },
       );
 
-      // If we reach this point, the operation succeeded
-      return X509ResValue.success();
+      return const X509Success();
     } on PlatformException catch (error) {
-      // Handle platform-specific errors from the native side
-      // The error code is typically embedded in the error code field
-      final errorCode = error.code;
-      final errorMessage = error.message ?? 'Unknown platform error occurred';
-
-      return X509ResValue.error(
-        errorCode,
-        'Failed to add certificate: $errorMessage',
-      );
+      return _failureFromPlatformException(error);
     } on FormatException catch (error) {
-      // Handle base64 decoding errors
-      return X509ResValue.error(
-        'INVALID_FORMAT',
-        'Invalid base64 certificate data: ${error.message}',
+      return X509Failure(
+        code: X509ErrorCode.invalidFormat,
+        msg: 'Invalid base64 certificate data: ${error.message}',
       );
     } catch (error) {
-      // Handle any other unexpected errors
-      return X509ResValue.error(
-        'UNEXPECTED_ERROR',
-        'An unexpected error occurred: $error',
+      return X509Failure(
+        code: X509ErrorCode.unknown,
+        msg: 'An unexpected error occurred: $error',
       );
+    }
+  }
+
+  X509Failure _failureFromPlatformException(PlatformException error) {
+    final categoryKey = error.code;
+    final msg = error.message ?? 'Unknown platform error occurred';
+
+    int? nativeCode;
+    final details = error.details;
+    if (details is Map) {
+      final raw = details['nativeCode'];
+      if (raw is int) {
+        nativeCode = raw;
+      }
+    }
+
+    return X509Failure(
+      code: _parseCategory(categoryKey),
+      msg: msg,
+      nativeCode: nativeCode,
+    );
+  }
+
+  X509ErrorCode _parseCategory(String key) {
+    switch (key) {
+      case 'canceled':
+        return X509ErrorCode.canceled;
+      case 'alreadyExist':
+        return X509ErrorCode.alreadyExist;
+      case 'accessDenied':
+        return X509ErrorCode.accessDenied;
+      case 'invalidFormat':
+        return X509ErrorCode.invalidFormat;
+      default:
+        return X509ErrorCode.unknown;
     }
   }
 }

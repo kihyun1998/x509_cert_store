@@ -30,6 +30,6 @@ void main() {
       certificateBase64: certificationBase64Str,
       addType: X509AddType.addNew,
     );
-    expect(rst.isOk, false);
+    expect(rst, isA<X509Failure>());
   });
 }

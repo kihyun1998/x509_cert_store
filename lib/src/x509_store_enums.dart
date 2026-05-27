@@ -32,60 +32,31 @@ enum X509StoreName {
   }
 }
 
-/// Standard error codes that can be returned during certificate operations.
+/// Cross-platform error categories returned by certificate operations.
 ///
-/// These error codes correspond to common certificate management errors
-/// across different platforms.
+/// Each enum value represents a semantic category that is mapped from
+/// platform-specific native error codes (Win32 `DWORD` on Windows, Security
+/// framework `OSStatus` on macOS) at the native layer. The public Dart API
+/// exposes only categories, never raw native codes (the raw value, when
+/// preserved, lives on `X509Failure.nativeCode`).
 enum X509ErrorCode {
   /// Operation was canceled by the user or system.
-  ///
-  /// This typically occurs when a user cancels a certificate installation
-  /// dialog or when the system interrupts the operation.
   canceled,
 
   /// Certificate already exists in the target store.
-  ///
-  /// This error is returned when attempting to add a certificate that
-  /// is already present in the specified certificate store.
   alreadyExist,
 
-  /// Unknown or unhandled error occurred.
-  ///
-  /// This is a catch-all error code for situations where the specific
-  /// error cannot be categorized into other error types.
-  unknown;
+  /// Operation was denied for permission reasons (e.g. attempting to add to
+  /// the ROOT store without administrator privileges).
+  accessDenied,
 
-  /// Gets the platform-specific error code string.
-  ///
-  /// Returns:
-  /// - "2148081669" for [alreadyExist] (CRYPT_E_EXISTS on Windows)
-  /// - "1223" for [canceled] (ERROR_CANCELLED on Windows)
-  /// - "UNKNOWN" for [unknown] errors
-  String getString() {
-    switch (this) {
-      case X509ErrorCode.alreadyExist:
-        return "2148081669"; // CRYPT_E_EXISTS
-      case X509ErrorCode.canceled:
-        return "1223"; // ERROR_CANCELLED
-      case X509ErrorCode.unknown:
-        return "UNKNOWN";
-    }
-  }
+  /// Certificate data could not be parsed (PEM/DER format error, decode
+  /// failure, or other structural problem with the input bytes).
+  invalidFormat,
 
-  /// Creates an [X509ErrorCode] from its string representation.
-  ///
-  /// If the provided [code] doesn't match any known error code,
-  /// returns [X509ErrorCode.unknown].
-  ///
-  /// [code]: The error code string to parse
-  static X509ErrorCode fromString(String code) {
-    for (var value in X509ErrorCode.values) {
-      if (value.getString() == code) {
-        return value;
-      }
-    }
-    return X509ErrorCode.unknown;
-  }
+  /// Native error that did not map to any other category. Inspect
+  /// `X509Failure.nativeCode` for the raw platform-specific value.
+  unknown,
 }
 
 /// Certificate addition behavior types.

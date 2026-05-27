@@ -17,18 +17,20 @@
 ///   addType: X509AddType.addNew,
 /// );
 ///
-/// if (result.isOk) {
-///   print('Certificate added successfully');
-/// } else {
-///   print('Error: ${result.msg}');
+/// switch (result) {
+///   case X509Success():
+///     print('Certificate added successfully');
+///   case X509Failure(code: X509ErrorCode.alreadyExist):
+///     print('Already exists');
+///   case X509Failure(:final msg):
+///     print('Error: $msg');
 /// }
 /// ```
 ///
 /// ## Supported Platforms
 ///
-/// - macOS (Keychain integration)
-/// - Windows (planned)
-/// - Linux (planned)
+/// - Windows (wincrypt certificate store)
+/// - macOS (Keychain Services)
 library x509_cert_store;
 
 // Export all public APIs
