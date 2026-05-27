@@ -1,3 +1,14 @@
+## 2.0.0
+
+### BREAKING CHANGES
+- `X509ResValue` class and its `hasError()` / `code` / `isOk` / `msg` accessors are removed. `addCertificate` now returns a sealed `X509Result` (either `X509Success` or `X509Failure`); consumers must pattern-match on the result.
+- `X509Failure` carries the cross-platform category as `code: X509ErrorCode` (a typed enum, no longer a `String`), a `msg`, and a nullable `nativeCode: int?` for unmapped-failure diagnostics.
+- `X509ErrorCode` enum expanded from 3 to 5 values: `canceled`, `alreadyExist`, `accessDenied` (new), `invalidFormat` (new), `unknown`. The `getString()` / `fromString()` helpers are removed.
+- Native plugins now own the `native-errcode → X509ErrorCode` mapping. The Dart API no longer exposes raw native codes except via the optional `X509Failure.nativeCode` field for failures bucketed as `unknown`.
+- macOS no longer coerces failures into Windows DWORD literals (`"2148081669"` etc.); each platform emits its own categorical key.
+
+See `MIGRATION.md` for before/after examples for every common usage pattern. Design rationale lives in `docs/adr/0001-sealed-result-type-with-categorical-error-codes.md` and the closed RFC discussion in issue #3.
+
 ## 1.2.2
 
 ### Fixed

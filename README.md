@@ -29,7 +29,7 @@ Linux support coming soon!
 
 ```yaml
 dependencies:
-  x509_cert_store: ^1.2.2
+  x509_cert_store: ^2.0.0
 ```
 
 Or run:
@@ -37,6 +37,8 @@ Or run:
 ```
 flutter pub add x509_cert_store
 ```
+
+> **Upgrading from 1.x?** v2.0.0 introduces a breaking redesign of the result API. See [MIGRATION.md](MIGRATION.md) for before/after examples for every common usage pattern.
 
 ## Platform-specific Setup
 
@@ -69,37 +71,34 @@ No additional setup is required for Windows.
 ```dart
 import 'package:x509_cert_store/x509_cert_store.dart';
 
-// Create an instance of the plugin
 final x509CertStore = X509CertStore();
 
-// Sample certificate in base64 format
 const String certificateBase64 = "MIIDKjCCAhKgAwIBAgIQFSHum2++9bhOXjAo4Z7...";
 
-// Add a certificate to the ROOT store with trust settings
-try {
-  final result = await x509CertStore.addCertificate(
-    storeName: X509StoreName.root,
-    certificateBase64: certificateBase64,
-    addType: X509AddType.addNew,
-    setTrusted: true,  // NEW: Configure certificate as trusted (macOS only, ignored on Windows)
-  );
-  
-  if (result.isOk) {
+final result = await x509CertStore.addCertificate(
+  storeName: X509StoreName.root,
+  certificateBase64: certificateBase64,
+  addType: X509AddType.addNew,
+  setTrusted: true, // macOS only; ignored on Windows
+);
+
+switch (result) {
+  case X509Success():
     print("Certificate added successfully");
-  } else {
-    print("Failed to add certificate: ${result.msg}");
-    
-    // Check for specific error conditions
-    if (result.hasError(X509ErrorCode.alreadyExist)) {
-      print("Certificate already exists in the store");
-    } else if (result.hasError(X509ErrorCode.canceled)) {
-      print("User canceled the certificate installation");
-    }
-  }
-} catch (e) {
-  print("An error occurred: $e");
+  case X509Failure(code: X509ErrorCode.alreadyExist):
+    print("Certificate already exists in the store");
+  case X509Failure(code: X509ErrorCode.canceled):
+    print("User canceled the certificate installation");
+  case X509Failure(code: X509ErrorCode.accessDenied):
+    print("Admin privileges required");
+  case X509Failure(code: X509ErrorCode.invalidFormat):
+    print("Invalid certificate format");
+  case X509Failure(code: X509ErrorCode.unknown, nativeCode: var n):
+    print("Unmapped failure (native code: $n)");
 }
 ```
+
+`X509Result` is a sealed type — the Dart compiler verifies that your `switch` covers every case, so adding a new `X509ErrorCode` value in the future will surface as a compile error rather than a silent fallthrough.
 
 ## API Reference
 
@@ -109,8 +108,8 @@ The main class for interacting with the certificate store.
 
 #### Methods
 
-- `Future<X509ResValue> addCertificate({required X509StoreName storeName, required String certificateBase64, required X509AddType addType, bool setTrusted = false})`  
-  Adds a certificate to the specified certificate store with optional trust settings.
+- `Future<X509Result> addCertificate({required X509StoreName storeName, required String certificateBase64, required X509AddType addType, bool setTrusted = false})`  
+  Adds a certificate to the specified certificate store with optional trust settings. Returns a sealed `X509Result` — either `X509Success` or `X509Failure(code: X509ErrorCode, msg: String, nativeCode: int?)`.
   
   **Parameters:**
   - `storeName` - The target certificate store (ROOT or MY)
@@ -133,13 +132,23 @@ Specifies how to handle the certificate addition.
 - `addNewer` - Add only if the certificate is newer than an existing one
 - `addReplaceExisting` - Replace any existing certificate
 
+### X509Result (sealed class)
+
+Returned by `addCertificate`. Either `X509Success` (no fields) or `X509Failure` with:
+
+- `code: X509ErrorCode` — cross-platform error category
+- `msg: String` — human-readable failure description
+- `nativeCode: int?` — raw native error code; populated for failures bucketed as `X509ErrorCode.unknown` so consumers can diagnose unmapped errors
+
 ### X509ErrorCode (enum)
 
-Common error codes that might be returned.
+Cross-platform error categories. Each maps from one or more platform-specific native error codes at the native layer (Win32 `DWORD` on Windows, Security framework `OSStatus` on macOS).
 
-- `canceled` - The user canceled the operation
-- `alreadyExist` - The certificate already exists in the store
-- `unknown` - An unknown error occurred
+- `canceled` — The user canceled the operation
+- `alreadyExist` — The certificate already exists in the store
+- `accessDenied` — Operation denied for permission reasons (e.g. admin privileges required for the ROOT store)
+- `invalidFormat` — Certificate data could not be parsed (PEM/DER format issue or decode failure)
+- `unknown` — Native error that did not map to any other category; inspect `X509Failure.nativeCode` for the raw value
 
 ## Platform-specific Behavior
 

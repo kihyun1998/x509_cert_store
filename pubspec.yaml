@@ -1,6 +1,6 @@
 name: x509_cert_store
 description: "A Flutter plugin for Windows and macOS desktop applications that enables adding X.509 certificates to the local certificate store with trust settings support."
-version: 1.2.2
+version: 2.0.0
 homepage: https://github.com/kihyun1998/x509_cert_store
 repository: https://github.com/kihyun1998/x509_cert_store
 issue_tracker: https://github.com/kihyun1998/x509_cert_store/issues
