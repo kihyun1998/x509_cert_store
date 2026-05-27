@@ -8,3 +8,9 @@ openssl.md
 CLAUDE.md
 CONTEXT.md
 docs/
+
+# Build artifacts and dependency tool caches — never publish
+build/
+**/build/
+.dart_tool/
+**/.dart_tool/
