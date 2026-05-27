@@ -1,3 +1,8 @@
+## 1.2.2
+
+### Fixed
+- Windows error codes are now exposed as numeric Win32 values (e.g. `2148081669` for `CRYPT_E_EXISTS`, `1223` for `ERROR_CANCELLED`) instead of the generic `CERT_ADD_FAILED` literal. This enables `result.hasError(X509ErrorCode.alreadyExist)` and `result.hasError(X509ErrorCode.canceled)` to work cross-platform, matching the macOS contract.
+
 ## 1.2.1
 
 ### Fixed

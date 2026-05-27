@@ -124,8 +124,8 @@ bool AddCertificateToStore(
   
   if (!result) {
     DWORD dwError = GetLastError();
-    errorCode = "CERT_ADD_FAILED";
-    errorMessage = "Failed to add certificate to store. Error code: " + std::to_string(dwError);
+    errorCode = std::to_string(dwError);
+    errorMessage = "Failed to add certificate to store (Win32 error " + std::to_string(dwError) + ")";
     return false;
   }
   
