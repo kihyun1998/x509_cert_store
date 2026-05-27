@@ -21,7 +21,7 @@ public class X509CertStorePlugin: NSObject, FlutterPlugin {
         let certificateData = args["certificate"] as? FlutterStandardTypedData,
         let addType = args["addType"] as? Int
       else {
-        result(Self.failure(message: "Missing or invalid arguments", nativeCode: nil))
+        result(Self.failure(category: "unknown", message: "Missing or invalid arguments"))
         return
       }
 
@@ -39,25 +39,30 @@ public class X509CertStorePlugin: NSObject, FlutterPlugin {
           result(true)
         } else {
           // Usually unreachable — the underlying call throws on failure.
-          result(Self.failure(message: "Failed to add certificate", nativeCode: nil))
+          result(Self.failure(category: "unknown", message: "Failed to add certificate"))
         }
       } catch CertificateError.invalidData {
-        result(Self.failure(message: "Invalid certificate data", nativeCode: nil))
+        result(Self.failure(
+          category: "invalidFormat",
+          message: "Invalid certificate data"))
       } catch CertificateError.alreadyExists {
-        // Either pre-empted by certificateExists() or surfaced as
-        // errSecDuplicateItem from SecItemAdd. Forward the canonical
-        // OSStatus so consumers can diagnose unmapped failures.
+        // Pre-empted by certificateExists() or surfaced as
+        // errSecDuplicateItem; either way the category is alreadyExist.
         result(Self.failure(
-          message: "Certificate already exists",
-          nativeCode: Int(errSecDuplicateItem)))
+          category: "alreadyExist",
+          message: "Certificate already exists"))
       } catch CertificateError.securityError(let code) {
+        // Try to map the OSStatus to a known category; otherwise fall
+        // back to "unknown" and preserve the raw value for diagnostics.
+        let category = Self.mapOSStatus(code) ?? "unknown"
         result(Self.failure(
+          category: category,
           message: "Security framework error: \(code)",
           nativeCode: Int(code)))
       } catch {
         result(Self.failure(
-          message: "An unexpected error occurred: \(error)",
-          nativeCode: nil))
+          category: "unknown",
+          message: "An unexpected error occurred: \(error)"))
       }
 
     default:
@@ -76,15 +81,43 @@ public class X509CertStorePlugin: NSObject, FlutterPlugin {
     }
   }
 
-  /// Build a FlutterError for the v2.0.0 baseline.
+  /// Map a Security framework OSStatus to an X509ErrorCode category key.
   ///
-  /// All failures use category "unknown" for now; categorical mapping
-  /// (alreadyExist / canceled / accessDenied / invalidFormat) is added by
-  /// a follow-up slice. The raw native code, when applicable, is forwarded
-  /// via `details.nativeCode` and surfaces as `X509Failure.nativeCode` on
-  /// the Dart side.
-  private static func failure(message: String, nativeCode: Int?) -> FlutterError {
-    let details: [String: Any] = ["nativeCode": nativeCode ?? NSNull()]
-    return FlutterError(code: "unknown", message: message, details: details)
+  /// Returns nil for unmapped status values — the failure then surfaces as
+  /// "unknown" with the raw OSStatus preserved in `details.nativeCode`.
+  private static func mapOSStatus(_ status: OSStatus) -> String? {
+    switch status {
+    case errSecDuplicateItem:
+      return "alreadyExist"
+    case errSecUserCanceled:
+      return "canceled"
+    case errSecAuthFailed:
+      return "accessDenied"
+    case errSecDecode:
+      return "invalidFormat"
+    default:
+      return nil
+    }
+  }
+
+  /// Build a FlutterError with the v2.0.0 contract.
+  ///
+  /// For matched categories, `details.nativeCode` is null since the
+  /// consumer already receives the typed enum value. For "unknown" failures
+  /// the raw native code (when applicable) is preserved so consumers can
+  /// diagnose unmapped errors and surface a useful diagnostic to users.
+  private static func failure(
+    category: String,
+    message: String,
+    nativeCode: Int? = nil
+  ) -> FlutterError {
+    let codeValue: Any
+    if category == "unknown" {
+      codeValue = nativeCode ?? NSNull()
+    } else {
+      codeValue = NSNull()
+    }
+    let details: [String: Any] = ["nativeCode": codeValue]
+    return FlutterError(code: category, message: message, details: details)
   }
 }

@@ -112,6 +112,38 @@ void main() {
       expect(result, isA<X509Failure>());
       expect((result as X509Failure).code, X509ErrorCode.invalidFormat);
     });
+
+    test('Mapped categories carry nativeCode = null (per #5 contract)',
+        () async {
+      final cases = {
+        'canceled': X509ErrorCode.canceled,
+        'alreadyExist': X509ErrorCode.alreadyExist,
+        'accessDenied': X509ErrorCode.accessDenied,
+        'invalidFormat': X509ErrorCode.invalidFormat,
+      };
+
+      for (final entry in cases.entries) {
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(channel, (call) async {
+          throw PlatformException(
+            code: entry.key,
+            message: 'test',
+            details: const {'nativeCode': null},
+          );
+        });
+
+        final result = await certStore.addCertificate(
+          storeName: X509StoreName.my,
+          certificateBase64: dummyCertBase64,
+          addType: X509AddType.addNew,
+        );
+
+        expect(result, isA<X509Failure>(), reason: 'key=${entry.key}');
+        final failure = result as X509Failure;
+        expect(failure.code, entry.value, reason: 'key=${entry.key}');
+        expect(failure.nativeCode, isNull, reason: 'key=${entry.key}');
+      }
+    });
   });
 
   group('X509Result pattern matching', () {
