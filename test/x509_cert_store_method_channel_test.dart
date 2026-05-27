@@ -73,7 +73,8 @@ void main() {
       expect(failure.nativeCode, isNull);
     });
 
-    test('Each category key on PlatformException.code maps to the matching X509ErrorCode',
+    test(
+        'Each category key on PlatformException.code maps to the matching X509ErrorCode',
         () async {
       final cases = {
         'canceled': X509ErrorCode.canceled,
