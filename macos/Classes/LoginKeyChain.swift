@@ -3,88 +3,17 @@ import Security
 
 class LoginKeyChain: KeyChainManager {
 
-  func addCertificate(certificateData: Data, addType: Int, setTrusted: Bool = false) throws -> Bool {
-    let certData = CertificateUtils.prepareCertificateData(certificateData)
-
-    guard let certificate = SecCertificateCreateWithData(nil, certData as CFData) else {
-      throw CertificateError.invalidData
-    }
-
-    if addType == CertificateAddType.CERT_STORE_ADD_NEW {
-      if certificateExists(certificate: certificate) {
-        throw CertificateError.alreadyExists
-      }
-    } else if addType == CertificateAddType.CERT_STORE_ADD_REPLACE_EXISTING {
-      if let existingCert = findExistingCertificate(certificate: certificate) {
-        let deleteQuery: [String: Any] = [
-          kSecClass as String: kSecClassCertificate,
-          kSecValueRef as String: existingCert,
-        ]
-
-        let deleteStatus = SecItemDelete(deleteQuery as CFDictionary)
-        if deleteStatus != errSecSuccess {
-          throw CertificateError.securityError(deleteStatus)
-        }
-      }
-    } else if addType == CertificateAddType.CERT_STORE_ADD_NEWER {
-      if let existing = findExistingCertificate(certificate: certificate) {
-        if !CertificateUtils.isNewerCertificate(newCert: certificate, existingCert: existing) {
-          return true
-        }
-
-        let deleteQuery: [String: Any] = [
-          kSecClass as String: kSecClassCertificate,
-          kSecValueRef as String: existing,
-        ]
-
-        _ = SecItemDelete(deleteQuery as CFDictionary)
-      }
-    }
-
-    let query: [String: Any] = [
-      kSecClass as String: kSecClassCertificate,
-      kSecValueRef as String: certificate,
-      kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock,
-    ]
-
-    let status = SecItemAdd(query as CFDictionary, nil)
-
-    if status == errSecSuccess {
-      if setTrusted {
-        do {
-          try addTrustedCertificateWithSecurityCommand(certificateData: certData, isSystemWide: false)
-        } catch {
-        }
-      } else {
-      }
-      return true
-    } else if status == errSecDuplicateItem {
-      throw CertificateError.alreadyExists
-    } else {
-      throw CertificateError.securityError(status)
-    }
+  /// Trust configuration for the login keychain: invoke `security` directly as
+  /// the current user (no elevation).
+  func applyTrust(certData: Data) throws {
+    try addTrustedCertificateWithSecurityCommand(certificateData: certData)
   }
 
-  func certificateExists(certificate: SecCertificate) -> Bool {
-    return CertificateUtils.certificateExists(certificate: certificate, keychain: nil)
-  }
-
-  func findExistingCertificate(certificate: SecCertificate) -> SecCertificate? {
-    return CertificateUtils.findExistingCertificate(certificate: certificate, keychain: nil)
-  }
-
-  func loadAllCertificates() -> [SecCertificate] {
-    return CertificateUtils.loadAllCertificatesFromKeychain(keychain: nil)
-  }
-
-  private func addTrustedCertificateWithSecurityCommand(
-    certificateData: Data, isSystemWide: Bool = false
-  ) throws {
+  private func addTrustedCertificateWithSecurityCommand(certificateData: Data) throws {
     let tempDir = NSTemporaryDirectory()
     let tempFile = tempDir + "temp_cert_\(UUID().uuidString).pem"
 
     let pemData = CertificateUtils.convertDERToPEM(certificateData)
-
 
     try pemData.write(to: URL(fileURLWithPath: tempFile))
 
@@ -105,7 +34,6 @@ class LoginKeyChain: KeyChainManager {
       tempFile,
     ]
 
-
     let pipe = Pipe()
     task.standardOutput = pipe
     task.standardError = pipe
@@ -113,15 +41,8 @@ class LoginKeyChain: KeyChainManager {
     task.launch()
     task.waitUntilExit()
 
-    let data = pipe.fileHandleForReading.readDataToEndOfFile()
-    let output = String(data: data, encoding: .utf8) ?? ""
-
-    if !output.isEmpty {
-    }
-
     if task.terminationStatus != 0 {
       throw CertificateError.securityError(OSStatus(task.terminationStatus))
-    } else {
     }
   }
 }

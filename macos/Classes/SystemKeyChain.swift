@@ -18,86 +18,40 @@ extension Data {
 }
 
 class SystemKeyChain: KeyChainManager {
-  func addCertificate(certificateData: Data, addType: Int, setTrusted: Bool) throws -> Bool {
-    let certData = CertificateUtils.prepareCertificateData(certificateData)
 
-    guard let certificate = SecCertificateCreateWithData(nil, certData as CFData) else {
-      throw CertificateError.invalidData
-    }
-
-    if addType == CertificateAddType.CERT_STORE_ADD_NEW {
-      if certificateExists(certificate: certificate) {
-        throw CertificateError.alreadyExists
-      }
-    } else if addType == CertificateAddType.CERT_STORE_ADD_REPLACE_EXISTING {
-      if let existingCert = findExistingCertificate(certificate: certificate) {
-        let deleteQuery: [String: Any] = [
-          kSecClass as String: kSecClassCertificate,
-          kSecValueRef as String: existingCert,
-        ]
-
-        let deleteStatus = SecItemDelete(deleteQuery as CFDictionary)
-        if deleteStatus != errSecSuccess {
-          throw CertificateError.securityError(deleteStatus)
-        }
-      }
-    } else if addType == CertificateAddType.CERT_STORE_ADD_NEWER {
-      if let existing = findExistingCertificate(certificate: certificate) {
-        if !CertificateUtils.isNewerCertificate(newCert: certificate, existingCert: existing) {
-          return true
-        }
-
-        let deleteQuery: [String: Any] = [
-          kSecClass as String: kSecClassCertificate,
-          kSecValueRef as String: existing,
-        ]
-
-        let deleteStatus = SecItemDelete(deleteQuery as CFDictionary)
-        if deleteStatus != errSecSuccess {
-          throw CertificateError.securityError(deleteStatus)
-        }
-      }
-    }
-
-    let query: [String: Any] = [
-      kSecClass as String: kSecClassCertificate,
-      kSecValueRef as String: certificate,
-      kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock,
-    ]
-
-    let status = SecItemAdd(query as CFDictionary, nil)
-
-    if status == errSecSuccess {
-      if setTrusted {
-        do {
-          try addTrustedCertificateWithSecurityCommand(
-            certificateData: certData, isSystemWide: true)
-        } catch {
-          // Trust setting failed, but certificate was added
-        }
-      }
-      return true
-    } else if status == errSecDuplicateItem {
-      throw CertificateError.alreadyExists
-    } else {
-      throw CertificateError.securityError(status)
-    }
+  /// Trust configuration for the system keychain: elevate via AppleScript, and
+  /// fall back to a direct `security` invocation if elevation is unavailable.
+  func applyTrust(certData: Data) throws {
+    try addTrustedCertificateWithSecurityCommand(certificateData: certData)
   }
 
-  func certificateExists(certificate: SecCertificate) -> Bool {
-    return CertificateUtils.certificateExists(certificate: certificate, keychain: nil)
-  }
+  private func addTrustedCertificateWithSecurityCommand(certificateData: Data) throws {
+    let tempDir = NSTemporaryDirectory()
+    let tempFile = tempDir + "temp_cert_\(UUID().uuidString).pem"
 
-  func findExistingCertificate(certificate: SecCertificate) -> SecCertificate? {
-    return CertificateUtils.findExistingCertificate(certificate: certificate, keychain: nil)
-  }
+    let pemData = CertificateUtils.convertDERToPEM(certificateData)
 
-  func loadAllCertificates() -> [SecCertificate] {
-    return CertificateUtils.loadAllCertificatesFromKeychain(keychain: nil)
+    try pemData.write(to: URL(fileURLWithPath: tempFile))
+
+    defer {
+      try? FileManager.default.removeItem(atPath: tempFile)
+    }
+
+    // First try with sudo via AppleScript for the system keychain.
+    let script = """
+      do shell script "security add-trusted-cert -d -r trustRoot -p ssl -p smime -p codeSign -p basic -k /Library/Keychains/System.keychain '\(tempFile)'" with administrator privileges
+      """
+
+    let appleScript = NSAppleScript(source: script)
+    var error: NSDictionary?
+    let _ = appleScript?.executeAndReturnError(&error)
+
+    if error != nil {
+      try fallbackToProcessExecution(tempFile: tempFile)
+    }
   }
 
   private func fallbackToProcessExecution(tempFile: String) throws {
-
     let task = Process()
     task.launchPath = "/usr/bin/security"
     task.arguments = [
@@ -120,34 +74,6 @@ class SystemKeyChain: KeyChainManager {
 
     if task.terminationStatus != 0 {
       throw CertificateError.securityError(OSStatus(task.terminationStatus))
-    }
-  }
-
-  private func addTrustedCertificateWithSecurityCommand(
-    certificateData: Data, isSystemWide: Bool = true
-  ) throws {
-    let tempDir = NSTemporaryDirectory()
-    let tempFile = tempDir + "temp_cert_\(UUID().uuidString).pem"
-
-    let pemData = CertificateUtils.convertDERToPEM(certificateData)
-
-    try pemData.write(to: URL(fileURLWithPath: tempFile))
-
-    defer {
-      try? FileManager.default.removeItem(atPath: tempFile)
-    }
-
-    // First try with sudo via AppleScript for system keychain
-    let script = """
-      do shell script "security add-trusted-cert -d -r trustRoot -p ssl -p smime -p codeSign -p basic -k /Library/Keychains/System.keychain '\(tempFile)'" with administrator privileges
-      """
-
-    let appleScript = NSAppleScript(source: script)
-    var error: NSDictionary?
-    let _ = appleScript?.executeAndReturnError(&error)
-
-    if error != nil {
-      try fallbackToProcessExecution(tempFile: tempFile)
     }
   }
 }
