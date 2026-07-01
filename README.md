@@ -21,9 +21,10 @@ A Flutter plugin for Windows and macOS desktop applications that enables adding 
 
 | macOS | Windows | Linux |
 |:-----:|:-------:|:-----:|
-|   ✅   |    ✅    |   🔜   |
+|   ✅   |    ✅    |   ❌   |
 
-Linux support coming soon!
+Linux is not supported. The plugin ships only Windows and macOS
+implementations; calling it on Linux throws `MissingPluginException`.
 
 ## Installation
 
