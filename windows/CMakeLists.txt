@@ -26,10 +26,11 @@ set(x509_cert_store_bundled_libraries
 )
 
 # === Tests ===
-# These unit tests can be run from a terminal after building, or from Visual
-# Studio's Test Explorer via CTest integration. They are only configured when
-# the Flutter tooling requests them (e.g. flutter_plugin_tools native-test),
-# which defines include_${PROJECT_NAME}_tests.
+# The test target is compiled when include_${PROJECT_NAME}_tests is set. The
+# example app's own CMakeLists sets it TRUE by convention, so these tests build
+# as part of `flutter build windows`. Test discovery is deferred to ctest time
+# (DISCOVERY_MODE PRE_TEST below) so the app build itself never runs the test
+# binary, which needs flutter_windows.dll on PATH.
 if (${include_${PROJECT_NAME}_tests})
 set(TEST_RUNNER "${PROJECT_NAME}_test")
 enable_testing()
@@ -38,10 +39,14 @@ enable_testing()
 include(FetchContent)
 FetchContent_Declare(
   googletest
-  URL https://github.com/google/googletest/archive/release-1.11.0.zip
+  URL https://github.com/google/googletest/archive/refs/tags/v1.15.2.zip
 )
 # Prevent overriding the parent project's compiler/linker settings.
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+# Do not let GoogleTest add install() rules. Otherwise `flutter build`'s INSTALL
+# step tries to install GoogleTest into the system prefix and fails with
+# "file INSTALL cannot make directory".
+set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
 # The plugin's exported API is not useful for unit testing, so build the plugin
@@ -58,7 +63,10 @@ target_link_libraries(${TEST_RUNNER} PRIVATE Crypt32.lib)
 target_link_libraries(${TEST_RUNNER} PRIVATE gtest_main gmock)
 target_compile_definitions(${TEST_RUNNER} PRIVATE FLUTTER_PLUGIN_IMPL)
 
-# Enable automatic test discovery.
+# Enable automatic test discovery. PRE_TEST discovers tests when ctest runs
+# rather than at build time: the test binary links the Flutter C++ wrapper and
+# needs flutter_windows.dll at runtime, which is not beside the binary during
+# `flutter build`, so build-time (POST_BUILD) discovery would fail the build.
 include(GoogleTest)
-gtest_discover_tests(${TEST_RUNNER})
+gtest_discover_tests(${TEST_RUNNER} DISCOVERY_MODE PRE_TEST)
 endif()
