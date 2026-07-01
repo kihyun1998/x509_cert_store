@@ -73,6 +73,12 @@ std::vector<BYTE> ConvertPemToDer(const std::vector<BYTE>& inputData) {
   if (beginPos != std::string::npos && endPos != std::string::npos) {
     beginPos += strlen("-----BEGIN CERTIFICATE-----");
 
+    // Guard against a malformed PEM where the END marker precedes BEGIN:
+    // endPos - beginPos would underflow (size_t) and throw from substr.
+    if (endPos <= beginPos) {
+      return {};
+    }
+
     std::string base64Cert = pemCert.substr(beginPos, endPos - beginPos);
     base64Cert.erase(std::remove(base64Cert.begin(), base64Cert.end(), '\n'), base64Cert.end());
     base64Cert.erase(std::remove(base64Cert.begin(), base64Cert.end(), '\r'), base64Cert.end());
