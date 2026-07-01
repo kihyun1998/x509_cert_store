@@ -114,6 +114,16 @@ bool AddCertificateToStore(
   category = "unknown";
   nativeCode = 0;
 
+  // Guard against empty input before any indexing (certificateData[0] below)
+  // or store handle allocation. An empty base64 string on the Dart side
+  // decodes to an empty vector, which would otherwise be an out-of-bounds
+  // read. macOS surfaces this as invalidFormat; match that here.
+  if (certificateData.empty()) {
+    category = "invalidFormat";
+    errorMessage = "Certificate data is empty";
+    return false;
+  }
+
   HCERTSTORE hStore = CertOpenSystemStoreA(NULL, storeName.c_str());
   if (!hStore) {
     nativeCode = GetLastError();
