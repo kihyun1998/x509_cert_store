@@ -21,7 +21,7 @@ public class X509CertStorePlugin: NSObject, FlutterPlugin {
         let certificateData = args["certificate"] as? FlutterStandardTypedData,
         let addType = args["addType"] as? Int
       else {
-        result(Self.failure(category: "unknown", message: "Missing or invalid arguments"))
+        result(Self.failure(category: X509Category.unknown, message: "Missing or invalid arguments"))
         return
       }
 
@@ -39,29 +39,29 @@ public class X509CertStorePlugin: NSObject, FlutterPlugin {
           result(true)
         } else {
           // Usually unreachable — the underlying call throws on failure.
-          result(Self.failure(category: "unknown", message: "Failed to add certificate"))
+          result(Self.failure(category: X509Category.unknown, message: "Failed to add certificate"))
         }
       } catch CertificateError.invalidData {
         result(Self.failure(
-          category: "invalidFormat",
+          category: X509Category.invalidFormat,
           message: "Invalid certificate data"))
       } catch CertificateError.alreadyExists {
         // Pre-empted by certificateExists() or surfaced as
         // errSecDuplicateItem; either way the category is alreadyExist.
         result(Self.failure(
-          category: "alreadyExist",
+          category: X509Category.alreadyExist,
           message: "Certificate already exists"))
       } catch CertificateError.securityError(let code) {
         // Try to map the OSStatus to a known category; otherwise fall
         // back to "unknown" and preserve the raw value for diagnostics.
-        let category = Self.mapOSStatus(code) ?? "unknown"
+        let category = Self.mapOSStatus(code) ?? X509Category.unknown
         result(Self.failure(
           category: category,
           message: "Security framework error: \(code)",
           nativeCode: Int(code)))
       } catch {
         result(Self.failure(
-          category: "unknown",
+          category: X509Category.unknown,
           message: "An unexpected error occurred: \(error)"))
       }
 
@@ -88,13 +88,13 @@ public class X509CertStorePlugin: NSObject, FlutterPlugin {
   private static func mapOSStatus(_ status: OSStatus) -> String? {
     switch status {
     case errSecDuplicateItem:
-      return "alreadyExist"
+      return X509Category.alreadyExist
     case errSecUserCanceled:
-      return "canceled"
+      return X509Category.canceled
     case errSecAuthFailed:
-      return "accessDenied"
+      return X509Category.accessDenied
     case errSecDecode:
-      return "invalidFormat"
+      return X509Category.invalidFormat
     default:
       return nil
     }
@@ -112,7 +112,7 @@ public class X509CertStorePlugin: NSObject, FlutterPlugin {
     nativeCode: Int? = nil
   ) -> FlutterError {
     let codeValue: Any
-    if category == "unknown" {
+    if category == X509Category.unknown {
       codeValue = nativeCode ?? NSNull()
     } else {
       codeValue = NSNull()

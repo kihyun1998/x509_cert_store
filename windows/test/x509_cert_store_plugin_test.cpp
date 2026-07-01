@@ -3,12 +3,14 @@
 #include <flutter/standard_method_codec.h>
 #include <gtest/gtest.h>
 #include <windows.h>
+#include <wincrypt.h>
 
 #include <memory>
 #include <string>
 #include <variant>
 #include <vector>
 
+#include "x509_cert_store_categories.h"
 #include "x509_cert_store_plugin.h"
 
 namespace x509_cert_store {
@@ -82,6 +84,37 @@ TEST(X509CertStorePlugin, AddCertificateRejectsMissingArguments) {
 
   EXPECT_FALSE(got_success);
   EXPECT_EQ(error_code, "unknown");
+}
+
+// The category keys are the wire contract shared with the Dart and Swift
+// layers. Assert against the literal strings (not the category:: constants) so
+// a typo in either a constant or the mapping is caught, rather than comparing a
+// value to itself.
+TEST(X509CertStoreCategories, MapsKnownWin32ErrorsToWireKeys) {
+  // CRYPT_E_EXISTS is an HRESULT; cast to DWORD to avoid a signed/unsigned
+  // conversion warning (treated as an error under /WX).
+  EXPECT_EQ(CategoryFromWinError(static_cast<DWORD>(CRYPT_E_EXISTS)),
+            "alreadyExist");
+  EXPECT_EQ(CategoryFromWinError(static_cast<DWORD>(ERROR_CANCELLED)),
+            "canceled");
+  EXPECT_EQ(CategoryFromWinError(static_cast<DWORD>(ERROR_ACCESS_DENIED)),
+            "accessDenied");
+}
+
+TEST(X509CertStoreCategories, UnmappedWin32ErrorCollapsesToUnknown) {
+  EXPECT_FALSE(
+      MapWinErrorToCategory(static_cast<DWORD>(ERROR_INVALID_HANDLE))
+          .has_value());
+  EXPECT_EQ(CategoryFromWinError(static_cast<DWORD>(ERROR_INVALID_HANDLE)),
+            "unknown");
+}
+
+TEST(X509CertStoreCategories, ConstantsMatchWireContract) {
+  EXPECT_EQ(std::string(category::kCanceled), "canceled");
+  EXPECT_EQ(std::string(category::kAlreadyExist), "alreadyExist");
+  EXPECT_EQ(std::string(category::kAccessDenied), "accessDenied");
+  EXPECT_EQ(std::string(category::kInvalidFormat), "invalidFormat");
+  EXPECT_EQ(std::string(category::kUnknown), "unknown");
 }
 
 }  // namespace test
