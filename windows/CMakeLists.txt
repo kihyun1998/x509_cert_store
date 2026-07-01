@@ -24,3 +24,41 @@ set(x509_cert_store_bundled_libraries
   ""
   PARENT_SCOPE
 )
+
+# === Tests ===
+# These unit tests can be run from a terminal after building, or from Visual
+# Studio's Test Explorer via CTest integration. They are only configured when
+# the Flutter tooling requests them (e.g. flutter_plugin_tools native-test),
+# which defines include_${PROJECT_NAME}_tests.
+if (${include_${PROJECT_NAME}_tests})
+set(TEST_RUNNER "${PROJECT_NAME}_test")
+enable_testing()
+
+# Load GoogleTest using FetchContent.
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  URL https://github.com/google/googletest/archive/release-1.11.0.zip
+)
+# Prevent overriding the parent project's compiler/linker settings.
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
+
+# The plugin's exported API is not useful for unit testing, so build the plugin
+# sources directly into the test binary rather than linking the shared library.
+add_executable(${TEST_RUNNER}
+  "test/x509_cert_store_plugin_test.cpp"
+  ${PLUGIN_SOURCES}
+)
+apply_standard_settings(${TEST_RUNNER})
+target_include_directories(${TEST_RUNNER} PRIVATE
+  "${CMAKE_CURRENT_SOURCE_DIR}")
+target_link_libraries(${TEST_RUNNER} PRIVATE flutter_wrapper_plugin)
+target_link_libraries(${TEST_RUNNER} PRIVATE Crypt32.lib)
+target_link_libraries(${TEST_RUNNER} PRIVATE gtest_main gmock)
+target_compile_definitions(${TEST_RUNNER} PRIVATE FLUTTER_PLUGIN_IMPL)
+
+# Enable automatic test discovery.
+include(GoogleTest)
+gtest_discover_tests(${TEST_RUNNER})
+endif()
