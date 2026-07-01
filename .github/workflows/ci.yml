@@ -20,7 +20,7 @@ jobs:
       - run: flutter test
 
   build-windows:
-    name: Build Windows (native compile)
+    name: Windows (build + native gtest)
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -33,14 +33,16 @@ jobs:
       - name: Build Windows example
         working-directory: example
         run: flutter build windows --debug
-
-  # NOTE: Native gtest execution is intentionally NOT run in CI yet. The
-  # canonical runner (flutter_plugin_tools native-test) targets the
-  # flutter/packages monorepo layout and hangs on this single-package repo.
-  # The gtest target in windows/CMakeLists.txt is kept for local runs and is
-  # ready to wire into CI once a monorepo layout or a direct cmake/ctest
-  # harness is adopted. Until then, build-windows below validates that the
-  # native C++ compiles. Tracked as a follow-up in #12.
+      # The gtest target builds as part of `flutter build windows` and registers
+      # with ctest (PRE_TEST discovery). Run it directly with ctest instead of
+      # flutter_plugin_tools native-test, which hangs on a single-package repo.
+      # The test binary links the Flutter C++ wrapper, so flutter_windows.dll
+      # (in runner/Debug) must be on PATH.
+      - name: Run native tests
+        working-directory: example/build/windows/x64
+        run: |
+          $env:PATH = "$PWD\runner\Debug;" + $env:PATH
+          ctest --test-dir plugins/x509_cert_store -C Debug --output-on-failure
 
   build-macos:
     name: Build macOS (native compile)
