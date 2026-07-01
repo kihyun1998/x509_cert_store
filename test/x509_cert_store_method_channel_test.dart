@@ -28,6 +28,21 @@ void main() {
       expect(result, isA<X509Success>());
     });
 
+    test('Native returns false without throwing → X509Failure(unknown)',
+        () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async => false);
+
+      final result = await certStore.addCertificate(
+        storeName: X509StoreName.my,
+        certificateBase64: dummyCertBase64,
+        addType: X509AddType.addNew,
+      );
+
+      expect(result, isA<X509Failure>());
+      expect((result as X509Failure).code, X509ErrorCode.unknown);
+    });
+
     test(
         'PlatformException(code: "unknown", details: {nativeCode: N}) '
         '→ X509Failure(code: unknown, nativeCode: N)', () async {

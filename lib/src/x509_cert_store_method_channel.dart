@@ -35,7 +35,7 @@ class MethodChannelX509CertStore extends X509CertStorePlatform {
     try {
       final certificateBytes = base64.decode(certificateBase64);
 
-      await methodChannel.invokeMethod<bool>(
+      final added = await methodChannel.invokeMethod<bool>(
         'addCertificate',
         {
           'storeName': storeName.getString(),
@@ -45,7 +45,18 @@ class MethodChannelX509CertStore extends X509CertStorePlatform {
         },
       );
 
-      return const X509Success();
+      if (added == true) {
+        return const X509Success();
+      }
+
+      // Native side signals failure by throwing a PlatformException; a
+      // non-true return without an exception is unexpected, so surface it as
+      // an unknown failure rather than reporting a false success.
+      return const X509Failure(
+        code: X509ErrorCode.unknown,
+        msg:
+            'Native addCertificate returned a non-true result without an error',
+      );
     } on PlatformException catch (error) {
       return _failureFromPlatformException(error);
     } on FormatException catch (error) {
