@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  analyze-and-test:
+    name: Analyze & Dart unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+      - run: dart format --output=none --set-exit-if-changed .
+      - run: flutter analyze
+      - run: flutter test
+
+  build-windows:
+    name: Build Windows (native compile)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Resolve dependencies
+        working-directory: example
+        run: flutter pub get
+      - name: Build Windows example
+        working-directory: example
+        run: flutter build windows --debug
+
+  # NOTE: Native gtest execution is intentionally NOT run in CI yet. The
+  # canonical runner (flutter_plugin_tools native-test) targets the
+  # flutter/packages monorepo layout and hangs on this single-package repo.
+  # The gtest target in windows/CMakeLists.txt is kept for local runs and is
+  # ready to wire into CI once a monorepo layout or a direct cmake/ctest
+  # harness is adopted. Until then, build-windows below validates that the
+  # native C++ compiles. Tracked as a follow-up in #12.
+
+  build-macos:
+    name: Build macOS (native compile)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Resolve dependencies
+        working-directory: example
+        run: flutter pub get
+      - name: Build macOS example
+        working-directory: example
+        run: flutter build macos --debug
