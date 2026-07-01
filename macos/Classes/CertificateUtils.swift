@@ -30,16 +30,15 @@ class CertificateUtils {
   }
   
   static func isNewerCertificate(newCert: SecCertificate, existingCert: SecCertificate) -> Bool {
-    var error: Unmanaged<CFError>?
-
-    guard let newProps = SecCertificateCopyValues(newCert, nil, &error) as? [CFString: Any] else {
+    // Pass nil for the error out-parameter. The failure paths below never
+    // inspect the error, and requesting an Unmanaged<CFError> that we then fail
+    // to release would leak one CFError per failed lookup.
+    guard let newProps = SecCertificateCopyValues(newCert, nil, nil) as? [CFString: Any] else {
       return false
     }
 
-    error = nil
-
     guard
-      let existingProps = SecCertificateCopyValues(existingCert, nil, &error) as? [CFString: Any]
+      let existingProps = SecCertificateCopyValues(existingCert, nil, nil) as? [CFString: Any]
     else {
       return false
     }
