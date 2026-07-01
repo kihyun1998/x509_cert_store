@@ -1,3 +1,17 @@
+## 2.0.2
+
+### Fixed
+- Windows: an empty certificate (empty base64) no longer triggers an out-of-bounds read; it now fails cleanly with `X509ErrorCode.invalidFormat`, matching macOS behavior.
+- Windows: hardened PEM parsing against malformed input where the `END` marker precedes `BEGIN` (previously surfaced as `unknown`; now `invalidFormat`).
+- macOS: fixed a `CFError` memory leak on the certificate-comparison failure path (`isNewerCertificate`).
+- macOS: a failed certificate deletion during the "add newer" flow on the login keychain now surfaces as an error instead of being silently ignored, consistent with the system keychain.
+- Dart: a non-`true` native result returned without an error is now reported as `X509Failure(X509ErrorCode.unknown)` instead of a false `X509Success`.
+
+### Internal
+- Added a GitHub Actions CI pipeline (analyze, Dart unit tests, Windows/macOS native compile) and wired up the Windows native gtest target.
+- Deduplicated the macOS login/system keychain implementations behind a shared `KeyChainManager` protocol extension.
+- Centralized the method-channel error-category keys into named constants across the C++, Swift, and Dart layers.
+
 ## 2.0.1
 
 ### Fixed
