@@ -30,6 +30,24 @@ void main() {
       certificateBase64: certificationBase64Str,
       addType: X509AddType.addNew,
     );
+    // Adding to ROOT without elevation fails; the exact code is
+    // environment-dependent (e.g. accessDenied), so only assert failure here.
     expect(rst, isA<X509Failure>());
+  });
+
+  // Deterministic across platforms and privilege levels: an empty certificate
+  // string decodes to empty bytes, passes the Dart base64 step, and must be
+  // rejected as invalidFormat by the native layer (regression for #7 on the
+  // native add path). Requires no admin rights.
+  testWidgets('empty certificate is rejected as invalidFormat',
+      (WidgetTester tester) async {
+    final X509CertStore plugin = X509CertStore();
+    final rst = await plugin.addCertificate(
+      storeName: X509StoreName.my,
+      certificateBase64: '',
+      addType: X509AddType.addNew,
+    );
+    expect(rst, isA<X509Failure>());
+    expect((rst as X509Failure).code, X509ErrorCode.invalidFormat);
   });
 }
