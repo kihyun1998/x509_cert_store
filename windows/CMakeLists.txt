@@ -7,6 +7,7 @@ set(PLUGIN_NAME "x509_cert_store_plugin")
 list(APPEND PLUGIN_SOURCES
   "x509_cert_store_plugin.cpp"
   "x509_cert_store_plugin.h"
+  "x509_cert_store_categories.h"
 )
 add_library(${PLUGIN_NAME} SHARED
   "include/x509_cert_store/x509_cert_store_plugin_c_api.h"

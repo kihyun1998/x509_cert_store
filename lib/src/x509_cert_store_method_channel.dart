@@ -94,16 +94,30 @@ class MethodChannelX509CertStore extends X509CertStorePlatform {
 
   X509ErrorCode _parseCategory(String key) {
     switch (key) {
-      case 'canceled':
+      case _CategoryKeys.canceled:
         return X509ErrorCode.canceled;
-      case 'alreadyExist':
+      case _CategoryKeys.alreadyExist:
         return X509ErrorCode.alreadyExist;
-      case 'accessDenied':
+      case _CategoryKeys.accessDenied:
         return X509ErrorCode.accessDenied;
-      case 'invalidFormat':
+      case _CategoryKeys.invalidFormat:
         return X509ErrorCode.invalidFormat;
+      case _CategoryKeys.unknown:
+        return X509ErrorCode.unknown;
       default:
         return X509ErrorCode.unknown;
     }
   }
+}
+
+/// The X509ErrorCode category keys received over the method channel. These
+/// strings are the wire contract shared with the native layers; keep them in
+/// sync with windows/x509_cert_store_categories.h and
+/// macos/Classes/CategoryKeys.swift.
+abstract final class _CategoryKeys {
+  static const canceled = 'canceled';
+  static const alreadyExist = 'alreadyExist';
+  static const accessDenied = 'accessDenied';
+  static const invalidFormat = 'invalidFormat';
+  static const unknown = 'unknown';
 }

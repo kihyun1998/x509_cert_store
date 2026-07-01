@@ -4,6 +4,8 @@
 #include <windows.h>
 #include <wincrypt.h>
 
+#include "x509_cert_store_categories.h"
+
 #include <flutter/method_channel.h>
 #include <flutter/plugin_registrar_windows.h>
 #include <flutter/standard_method_codec.h>
@@ -25,11 +27,11 @@ namespace x509_cert_store {
 std::optional<std::string> MapWinErrorToCategory(DWORD code) {
   switch (code) {
     case CRYPT_E_EXISTS:       // 0x80092005 (2148081669)
-      return "alreadyExist";
+      return category::kAlreadyExist;
     case ERROR_CANCELLED:      // 1223
-      return "canceled";
+      return category::kCanceled;
     case ERROR_ACCESS_DENIED:  // 5
-      return "accessDenied";
+      return category::kAccessDenied;
     default:
       return std::nullopt;
   }
@@ -38,7 +40,7 @@ std::optional<std::string> MapWinErrorToCategory(DWORD code) {
 // Choose the category key from a raw Win32 errcode. Always returns a
 // non-empty key - unmapped errors collapse to "unknown".
 std::string CategoryFromWinError(DWORD code) {
-  return MapWinErrorToCategory(code).value_or("unknown");
+  return MapWinErrorToCategory(code).value_or(category::kUnknown);
 }
 
 // Send an error response on the method channel.
@@ -54,7 +56,7 @@ void SendErrorResponse(
     const std::string& error_message,
     DWORD win_error_code = 0) {
   EncodableMap details;
-  if (category == "unknown" && win_error_code != 0) {
+  if (category == category::kUnknown && win_error_code != 0) {
     details[EncodableValue("nativeCode")] =
         EncodableValue(static_cast<int64_t>(win_error_code));
   } else {
@@ -117,7 +119,7 @@ bool AddCertificateToStore(
     std::string& category,
     std::string& errorMessage,
     DWORD& nativeCode) {
-  category = "unknown";
+  category = category::kUnknown;
   nativeCode = 0;
 
   // Guard against empty input before any indexing (certificateData[0] below)
@@ -125,7 +127,7 @@ bool AddCertificateToStore(
   // decodes to an empty vector, which would otherwise be an out-of-bounds
   // read. macOS surfaces this as invalidFormat; match that here.
   if (certificateData.empty()) {
-    category = "invalidFormat";
+    category = category::kInvalidFormat;
     errorMessage = "Certificate data is empty";
     return false;
   }
@@ -141,7 +143,7 @@ bool AddCertificateToStore(
   if (certificateData[0] != 0x30) {
     certificateData = ConvertPemToDer(certificateData);
     if (certificateData.empty()) {
-      category = "invalidFormat";
+      category = category::kInvalidFormat;
       errorMessage = "Failed to convert PEM to DER format";
       CertCloseStore(hStore, 0);
       return false;
@@ -211,7 +213,7 @@ void X509CertStorePlugin::HandleMethodCall(
       const auto* arguments = std::get_if<flutter::EncodableMap>(method_call.arguments());
 
       if (!arguments) {
-        SendErrorResponse(result, "unknown", "Missing or invalid arguments");
+        SendErrorResponse(result, category::kUnknown, "Missing or invalid arguments");
         return;
       }
 
@@ -222,14 +224,14 @@ void X509CertStorePlugin::HandleMethodCall(
       if (storeNameIter == arguments->end() ||
           certificateIter == arguments->end() ||
           addTypeIter == arguments->end()) {
-        SendErrorResponse(result, "unknown", "Missing required parameters");
+        SendErrorResponse(result, category::kUnknown, "Missing required parameters");
         return;
       }
 
       if (!std::holds_alternative<std::string>(storeNameIter->second) ||
           !std::holds_alternative<std::vector<uint8_t>>(certificateIter->second) ||
           !std::holds_alternative<int>(addTypeIter->second)) {
-        SendErrorResponse(result, "unknown", "Parameters have incorrect type");
+        SendErrorResponse(result, category::kUnknown, "Parameters have incorrect type");
         return;
       }
 
