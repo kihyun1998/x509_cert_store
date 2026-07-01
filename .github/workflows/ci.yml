@@ -45,7 +45,7 @@ jobs:
           ctest --test-dir plugins/x509_cert_store -C Debug --output-on-failure
 
   build-macos:
-    name: Build macOS (native compile)
+    name: macOS (build + native XCTest)
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -55,6 +55,16 @@ jobs:
       - name: Resolve dependencies
         working-directory: example
         run: flutter pub get
+      # Must build first, or the generated Flutter/ephemeral/*.xcfilelist files
+      # are missing and the Xcode build fails.
       - name: Build macOS example
         working-directory: example
         run: flutter build macos --debug
+      - name: Run native tests
+        working-directory: example
+        run: |
+          xcodebuild test \
+            -workspace macos/Runner.xcworkspace \
+            -scheme Runner \
+            -destination 'platform=macOS' \
+            CODE_SIGNING_ALLOWED=NO
