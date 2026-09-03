@@ -15,9 +15,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dart-lang/setup-dart@v1
-      - run: dart pub get
+      # `dart pub get` also resolves example/ by default, and example/ is a
+      # Flutter app - it cannot resolve without the Flutter SDK, which this job
+      # deliberately does not have. The example is analyzed and built by the
+      # desktop jobs below instead.
+      - run: dart pub get --no-example
+      # Formatting is syntax-only, so it still covers the whole tree.
       - run: dart format --output=none --set-exit-if-changed .
-      - run: dart analyze
+      - run: dart analyze lib test
       - run: dart test
 
   windows:
@@ -29,7 +34,7 @@ jobs:
         with:
           channel: stable
       - name: Resolve dependencies
-        run: dart pub get
+        run: dart pub get --no-example
       # Includes test/windows_ffi_symbols_test.dart, which resolves every
       # crypt32 and kernel32 entry point. Under the old C++ plugin a bad symbol
       # was a link error; with FFI it would otherwise only surface at runtime
@@ -38,10 +43,11 @@ jobs:
         run: dart test
       # The package no longer declares a plugin platform, so this proves a
       # Flutter app still builds against it as a plain Dart dependency.
-      - name: Build Windows example
+      - name: Analyze and build Windows example
         working-directory: example
         run: |
           flutter pub get
+          flutter analyze
           flutter build windows --debug
 
   macos:
@@ -53,15 +59,16 @@ jobs:
         with:
           channel: stable
       - name: Resolve dependencies
-        run: dart pub get
+        run: dart pub get --no-example
       # Includes test/macos_ffi_symbols_test.dart, which resolves every
       # CoreFoundation and Security symbol plus the CFString constants. This
       # is the only place those lookups are exercised, since the Windows dev
       # host cannot run them.
       - name: Dart tests
         run: dart test
-      - name: Build macOS example
+      - name: Analyze and build macOS example
         working-directory: example
         run: |
           flutter pub get
+          flutter analyze
           flutter build macos --debug
