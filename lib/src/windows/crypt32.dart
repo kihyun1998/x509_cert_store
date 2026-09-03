@@ -8,7 +8,8 @@ import 'package:ffi/ffi.dart';
 ///
 /// These are top-level `final`s, which Dart initializes lazily. The libraries
 /// are therefore only opened when a Windows store operation actually runs,
-/// which keeps this file importable on macOS.
+/// which keeps this file importable on macOS. That laziness has a sharp edge
+/// on Windows specifically - see [ensureBindingsResolved].
 final DynamicLibrary _crypt32 = DynamicLibrary.open('crypt32.dll');
 final DynamicLibrary _kernel32 = DynamicLibrary.open('kernel32.dll');
 
@@ -47,11 +48,44 @@ final int Function(Pointer<Void>, int) certCloseStore = _crypt32.lookupFunction<
 
 /// `DWORD GetLastError(void)`
 ///
-/// The last-error value is thread-local, so it must be read on the same
-/// thread as the failing call and before any other call can overwrite it.
-/// Each use below reads it immediately after the call it describes.
+/// The last-error value is thread-local, so it must be read on the same thread
+/// as the failing call and before anything else can overwrite it - including
+/// the loader, which is what [ensureBindingsResolved] exists to prevent.
 final int Function() getLastError =
     _kernel32.lookupFunction<Uint32 Function(), int Function()>('GetLastError');
+
+/// Forces every binding above to resolve, before any of them is called for
+/// real. Call this once at the start of a store operation.
+///
+/// wincrypt reports failures through the thread-local Win32 last-error value.
+/// Dart initializes top-level `final`s lazily and gives each isolate its own
+/// copy, so without this the first read of [getLastError] runs `LoadLibrary`
+/// and `GetProcAddress` - and those *succeed*, resetting the last error to 0.
+/// When that first read is the one immediately after a failed wincrypt call,
+/// the error it was meant to report is already gone: every failure collapsed
+/// into `X509ErrorCode.unknown` with `nativeCode: 0`, which made
+/// `alreadyExist` (`CRYPT_E_EXISTS`), `canceled` (`ERROR_CANCELLED`), and
+/// `accessDenied` (`ERROR_ACCESS_DENIED`) unreachable.
+///
+/// Measured, not assumed: with the bindings warm, the value survives the FFI
+/// call boundary on both a main and a worker isolate, and `isLeaf` makes no
+/// difference either way. Resolving up front is the whole fix.
+///
+/// macOS needs no equivalent: `OSStatus` is a return value rather than
+/// thread-local state, so nothing can overwrite it in between.
+void ensureBindingsResolved() {
+  final bindings = <Function>[
+    certOpenSystemStoreA,
+    certCreateCertificateContext,
+    certAddCertificateContextToStore,
+    certFreeCertificateContext,
+    certCloseStore,
+    getLastError,
+  ];
+  assert(bindings.length == 6);
+  // Discard whatever the loader left in the last-error slot.
+  getLastError();
+}
 
 /// `X509_ASN_ENCODING | PKCS_7_ASN_ENCODING`, the encoding pair the previous
 /// C++ implementation passed to `CertCreateCertificateContext`.
