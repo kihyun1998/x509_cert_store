@@ -14,3 +14,8 @@ build/
 **/build/
 .dart_tool/
 **/.dart_tool/
+
+# Generated agents and scripts, and thegraph run state -- build tooling, never
+# part of the published package.
+.claude/
+.thegraph/

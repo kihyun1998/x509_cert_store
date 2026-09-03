@@ -27,3 +27,7 @@ migrate_working_dir/
 **/doc/api/
 .dart_tool/
 build/
+
+# thegraph run state -- a cache during the run; the issue is the durable record.
+# A cache that reaches a review is noise.
+.thegraph/
