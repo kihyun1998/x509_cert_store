@@ -1,6 +1,6 @@
 # X509 Certificate Store
 
-A Flutter plugin for Windows and macOS desktop applications that enables adding X.509 certificates to the local certificate store. This plugin provides a simple and efficient way to manage certificates in desktop environments.
+A Dart package for Windows and macOS desktop applications that enables adding X.509 certificates to the local certificate store. It reaches the platform certificate stores through `dart:ffi`, so it ships no compiled native code and works from Flutter apps and plain Dart programs alike.
 
 [![pub package](https://img.shields.io/pub/v/x509_cert_store.svg)](https://pub.dev/packages/x509_cert_store)
 
@@ -16,6 +16,7 @@ A Flutter plugin for Windows and macOS desktop applications that enables adding 
 - Comprehensive error handling with descriptive error codes
 - Automatic PEM/DER format detection and conversion
 - Enhanced certificate management with improved duplicate detection
+- No native build step: pure Dart plus `dart:ffi`, with no Flutter dependency
 
 ## Platform Support
 
@@ -29,16 +30,18 @@ Linux support coming soon!
 
 ```yaml
 dependencies:
-  x509_cert_store: ^2.0.2
+  x509_cert_store: ^3.0.0
 ```
 
 Or run:
 
 ```
-flutter pub add x509_cert_store
+dart pub add x509_cert_store    # or: flutter pub add x509_cert_store
 ```
 
-> **Upgrading from 1.x?** v2.0.0 introduces a breaking redesign of the result API. See [MIGRATION.md](MIGRATION.md) for before/after examples for every common usage pattern.
+> **Upgrading from 2.x?** v3.0.0 replaces the native plugin with `dart:ffi`. The public API is unchanged, but the package is no longer a Flutter plugin - run `flutter clean` once after upgrading. See [MIGRATION.md](MIGRATION.md).
+>
+> **Upgrading from 1.x?** v2.0.0 introduced a breaking redesign of the result API, also covered in [MIGRATION.md](MIGRATION.md).
 
 ## Platform-specific Setup
 
@@ -142,7 +145,7 @@ Returned by `addCertificate`. Either `X509Success` (no fields) or `X509Failure` 
 
 ### X509ErrorCode (enum)
 
-Cross-platform error categories. Each maps from one or more platform-specific native error codes at the native layer (Win32 `DWORD` on Windows, Security framework `OSStatus` on macOS).
+Cross-platform error categories. Each maps from one or more platform-specific native error codes (Win32 `DWORD` on Windows, Security framework `OSStatus` on macOS). The mapping runs in Dart, immediately after the FFI call that produced the value.
 
 - `canceled` — The user canceled the operation
 - `alreadyExist` — The certificate already exists in the store
@@ -154,14 +157,15 @@ Cross-platform error categories. Each maps from one or more platform-specific na
 
 ### macOS
 
-On macOS, certificates are managed through the Keychain system with support for both system and login keychains:
+On macOS, certificates are managed through Keychain Services:
 
-- `X509StoreName.root` adds certificates to the **System Keychain** (requires admin privileges)
-- `X509StoreName.my` adds certificates to the **Login Keychain** (user-level access)
-- **Trust Settings**: When `setTrusted: true` is explicitly specified, the certificate will be configured as a trusted certificate (default is `false`)
-- **Fallback Mechanism**: If system-level trust configuration fails (due to permissions), the plugin automatically falls back to adding trusted certificates to the login keychain
-- The user may be prompted to enter their password to allow the application to modify the Keychain
-- Enhanced certificate management with improved duplicate detection and replacement logic
+- The certificate itself is added to the user's **default keychain** for both store names. `X509StoreName` selects the *trust* mechanism, not the destination keychain
+- **Trust Settings**: When `setTrusted: true` is explicitly specified, the certificate is configured as trusted via `security add-trusted-cert` (default is `false`)
+- `X509StoreName.root` requests trust in the **admin domain**, elevating through `osascript`, so the user is prompted for an administrator password
+- `X509StoreName.my` requests trust as the current user, with no elevation
+- **Fallback Mechanism**: If elevation fails or is declined, the unelevated `security` invocation is attempted instead
+- Trust configuration is best effort: the certificate has already been added by that point, so a trust failure does not fail the operation
+- Duplicate detection compares certificate identity as (issuer, serial number), parsed from the certificate's DER
 
 ### Windows
 
@@ -183,10 +187,11 @@ Check the `/example` folder for a complete implementation demonstrating:
 
 ## Notes for Developers
 
-If you're contributing to this plugin or integrating it into your application, note that:
+If you're contributing to this package or integrating it into your application, note that:
 
-1. For macOS, the plugin requires Keychain access, which is enabled through entitlements
-2. For Windows, the plugin uses the Windows CryptoAPI
+1. For macOS, Keychain access is required, which is enabled through entitlements
+2. For Windows, the package calls the Windows CryptoAPI (`crypt32.dll`) directly over `dart:ffi`
+3. There is no native build step. `dart test` runs the whole suite on any host; the platform FFI symbol lookups are pinned by `test/windows_ffi_symbols_test.dart` and `test/macos_ffi_symbols_test.dart`, which CI runs on their respective runners
 
 ## License
 

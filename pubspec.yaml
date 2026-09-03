@@ -1,6 +1,6 @@
 name: x509_cert_store
-description: "A Flutter plugin for Windows and macOS desktop applications that enables adding X.509 certificates to the local certificate store with trust settings support."
-version: 2.0.2
+description: "A Dart package for Windows and macOS desktop applications that enables adding X.509 certificates to the local certificate store with trust settings support."
+version: 3.0.0
 homepage: https://github.com/kihyun1998/x509_cert_store
 repository: https://github.com/kihyun1998/x509_cert_store
 issue_tracker: https://github.com/kihyun1998/x509_cert_store/issues
@@ -13,22 +13,11 @@ topics:
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
-  flutter: ">=3.0.0"
 
 dependencies:
-  flutter:
-    sdk: flutter
-  plugin_platform_interface: ^2.0.2
+  ffi: ^2.1.0
+  meta: ^1.9.0
 
 dev_dependencies:
-  flutter_lints: ^2.0.0
-  flutter_test:
-    sdk: flutter
-
-flutter:
-  plugin:
-    platforms:
-      windows:
-        pluginClass: X509CertStorePluginCApi
-      macos:
-        pluginClass: X509CertStorePlugin
+  lints: ^3.0.0
+  test: ^1.24.0

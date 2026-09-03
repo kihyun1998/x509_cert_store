@@ -36,9 +36,10 @@ void main() {
   });
 
   // Deterministic across platforms and privilege levels: an empty certificate
-  // string decodes to empty bytes, passes the Dart base64 step, and must be
-  // rejected as invalidFormat by the native layer (regression for #7 on the
-  // native add path). Requires no admin rights.
+  // string decodes to empty bytes and must be rejected as invalidFormat.
+  // Since v3.0.0 that rejection happens in Dart, before the platform backend
+  // is reached, so this asserts the public contract rather than the wincrypt
+  // guard that #7 originally added. Requires no admin rights.
   testWidgets('empty certificate is rejected as invalidFormat',
       (WidgetTester tester) async {
     final X509CertStore plugin = X509CertStore();
