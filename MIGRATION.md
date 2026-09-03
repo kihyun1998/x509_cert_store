@@ -1,10 +1,67 @@
-# Migrating from 1.x to 2.0.0
+# Migration guide
+
+- [2.x to 3.0.0](#2x-to-300) - the package became Dart-only
+- [1.x to 2.0.0](#1x-to-200) - the result API was redesigned
+
+## 2.x to 3.0.0
+
+v3.0.0 replaces the native Windows C++ and macOS Swift plugins with `dart:ffi`, and drops the Flutter dependency. **No source changes are required**: `X509CertStore`, `X509Result`, `X509ErrorCode`, `X509StoreName`, and `X509AddType` are unchanged, and `addCertificate` keeps its signature and its behaviour.
+
+### What you have to do
+
+Bump the constraint and clear the build once, because the generated plugin registrant changes when a package stops being a plugin:
+
+```bash
+flutter clean
+flutter pub get
+```
+
+That is the whole migration.
+
+### What changed underneath
+
+| 2.x | 3.0.0 |
+| --- | --- |
+| Flutter plugin with `windows/` (C++) and `macos/` (Swift) | Dart package calling `crypt32.dll` and Security.framework over `dart:ffi` |
+| `flutter` + `plugin_platform_interface` dependencies | `ffi` + `meta`; no Flutter dependency |
+| Method channel `io.github.kihyun1998/x509_cert_store` | Direct FFI calls; no channel |
+| Error categories mapped in C++/Swift and sent as string keys | Mapped in Dart from the raw Win32 `DWORD` / `OSStatus` |
+| PEM/DER normalization implemented twice, natively | One Dart implementation shared by both platforms |
+| Platform work ran on the platform thread | Runs on a worker isolate, so prompts no longer block the calling isolate |
+
+### Behaviour worth knowing about
+
+- **Dart-side input rejection.** Empty, non-base64, and malformed-PEM input is now rejected in Dart before any platform call. It was already reported as `invalidFormat`, so the observable result is the same, but it is now identical across platforms.
+- **macOS duplicate detection** compares certificate identity as (issuer, serial number) parsed from the DER, where 2.x used `SecCertificateCopyNormalizedIssuerSequence`. That API applies RFC name normalization; DER comparison does not. For a CA re-issuing under the same name - the case duplicate detection exists for - the issuer bytes are identical either way, so this only differs for two certificates whose issuer names match after normalization but differ byte-for-byte.
+- **macOS store names.** As in 2.x, the certificate is added to the default keychain for both `X509StoreName` values, and the store name selects the trust mechanism. The 2.x README described this incorrectly; the behaviour has not changed.
+- **Failed symbol lookups** surface as `X509Failure(code: X509ErrorCode.unknown)` rather than a link error at build time. This is the one class of failure that moved from build time to runtime.
+
+### Using it outside Flutter
+
+With the Flutter dependency gone, the package works in a plain Dart program:
+
+```dart
+import 'package:x509_cert_store/x509_cert_store.dart';
+
+Future<void> main() async {
+  final result = await X509CertStore().addCertificate(
+    storeName: X509StoreName.my,
+    certificateBase64: '...',
+    addType: X509AddType.addNew,
+  );
+  print(result);
+}
+```
+
+---
+
+## 1.x to 2.0.0
 
 v2.0.0 replaces the v1.x stringly-typed `X509ResValue` return shape with a sealed `X509Result` hierarchy + categorical `X509ErrorCode` enum. This is a **breaking change with no compatibility shim** — every consumer of `addCertificate` must be updated.
 
 For the rationale, see [ADR-0001](docs/adr/0001-sealed-result-type-with-categorical-error-codes.md) and the closed RFC discussion in [#3](https://github.com/kihyun1998/x509_cert_store/issues/3).
 
-## At a glance
+### At a glance
 
 | 1.x | 2.0.0 |
 | --- | --- |
@@ -18,9 +75,9 @@ For the rationale, see [ADR-0001](docs/adr/0001-sealed-result-type-with-categori
 | `hasError()` method | removed — use pattern matching |
 | `X509ErrorCode.getString()` / `.fromString()` | removed |
 
-## Common migration patterns
+### Common migration patterns
 
-### Success check
+#### Success check
 
 **1.x**:
 
@@ -46,7 +103,7 @@ switch (result) {
 }
 ```
 
-### Specific error category
+#### Specific error category
 
 **1.x**:
 
@@ -64,7 +121,7 @@ if (result case X509Failure(code: X509ErrorCode.alreadyExist)) {
 }
 ```
 
-### Full error handling
+#### Full error handling
 
 **1.x**:
 
@@ -95,7 +152,7 @@ switch (result) {
 }
 ```
 
-### Raw error code comparison
+#### Raw error code comparison
 
 **1.x** (worked on Windows after 1.2.2; never worked on macOS in a portable way):
 
@@ -124,7 +181,7 @@ if (result case X509Failure(
 }
 ```
 
-### Error message access
+#### Error message access
 
 **1.x**:
 
@@ -146,7 +203,7 @@ if (result case X509Failure(:final msg)) {
 }
 ```
 
-## New in 2.0.0: `unknown` + `nativeCode` diagnostic surface
+### New in 2.0.0: `unknown` + `nativeCode` diagnostic surface
 
 When a native error doesn't map to any of the four canonical categories (`alreadyExist`, `canceled`, `accessDenied`, `invalidFormat`), v2.0.0 classifies it as `X509ErrorCode.unknown` and preserves the raw platform-specific value in `X509Failure.nativeCode`. In v1.x this diagnostic information was embedded in the `msg` string and required string parsing to extract.
 
@@ -161,7 +218,7 @@ switch (result) {
 
 For matched categories, `nativeCode` is `null` — the typed enum already conveys the meaning, and `nativeCode` would be redundant.
 
-## New in 2.0.0: Exhaustiveness guarantee
+### New in 2.0.0: Exhaustiveness guarantee
 
 Because `X509Result` is sealed and `X509ErrorCode` is an enum, the Dart compiler verifies that your `switch` covers every case. In v1.x the `hasError()` comparisons were stringly-typed — a typo or a newly-added category would silently fall through. This was the bug class that motivated v2.0.0 (see [#2](https://github.com/kihyun1998/x509_cert_store/issues/2) for one such silent failure on Windows).
 
@@ -180,7 +237,7 @@ String describe(X509Result r) {
 }
 ```
 
-## Removed APIs
+### Removed APIs
 
 | Removed | Replacement |
 | --- | --- |
@@ -192,13 +249,13 @@ String describe(X509Result r) {
 | `X509ErrorCode.getString()` | None — the public API no longer exposes the stringly-typed key |
 | `X509ErrorCode.fromString(...)` | None — categorical mapping happens at the native layer |
 
-## New `X509ErrorCode` values
+### New `X509ErrorCode` values
 
 v1.x had three categories (`canceled`, `alreadyExist`, `unknown`). v2.0.0 adds two more, both pain-driven from real native error sites:
 
 - **`accessDenied`** — admin-required operations attempted without privileges (e.g. adding to ROOT store on Windows / macOS System keychain). Consumers can now show a "needs admin" prompt without parsing native codes.
 - **`invalidFormat`** — certificate data could not be parsed (PEM/DER decode failure). Lets consumers distinguish "bad input" from other failures.
 
-## Questions or unmapped errors?
+### Questions or unmapped errors?
 
 If you encounter an `X509ErrorCode.unknown` failure with a `nativeCode` that you think deserves its own category, please file an issue at <https://github.com/kihyun1998/x509_cert_store/issues> with the raw value and your use case.

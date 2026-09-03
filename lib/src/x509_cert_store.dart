@@ -1,13 +1,20 @@
-import 'x509_cert_store_platform_interface.dart';
-import 'x509_res_result.dart';
-import 'x509_store_enums.dart' show X509AddType, X509StoreName;
+import 'dart:convert';
+import 'dart:typed_data';
 
-/// A Flutter plugin for managing X.509 certificates in platform certificate
+import 'package:meta/meta.dart';
+
+import 'backend.dart';
+import 'pem.dart';
+import 'x509_res_result.dart';
+import 'x509_store_enums.dart' show X509AddType, X509ErrorCode, X509StoreName;
+
+/// A Dart package for managing X.509 certificates in platform certificate
 /// stores.
 ///
 /// Provides a cross-platform API for adding X.509 certificates to the
 /// operating system's certificate stores on Windows (wincrypt) and macOS
-/// (Keychain Services).
+/// (Keychain Services). Both are reached through `dart:ffi`, so the package
+/// ships no compiled native code.
 ///
 /// ## Usage
 ///
@@ -36,6 +43,18 @@ import 'x509_store_enums.dart' show X509AddType, X509StoreName;
 /// }
 /// ```
 class X509CertStore {
+  /// Creates a store bound to the host platform's backend.
+  X509CertStore() : _backend = createPlatformBackend();
+
+  /// Creates a store bound to [backend].
+  ///
+  /// FFI bindings cannot be mocked the way the previous method channel could,
+  /// so tests substitute a backend here instead.
+  @visibleForTesting
+  X509CertStore.withBackend(X509CertStoreBackend backend) : _backend = backend;
+
+  final X509CertStoreBackend _backend;
+
   /// Adds a certificate to the specified certificate store.
   ///
   /// Returns an [X509Result] — pattern-match on the result to handle
@@ -52,12 +71,50 @@ class X509CertStore {
     required String certificateBase64,
     required X509AddType addType,
     bool setTrusted = false,
-  }) {
-    return X509CertStorePlatform.instance.addCertificate(
-      storeName: storeName,
-      certificateBase64: certificateBase64,
-      addType: addType,
-      setTrusted: setTrusted,
-    );
+  }) async {
+    // Decoding and PEM normalization happen above the platform seam, so the
+    // two invalid-input paths below behave identically on every platform and
+    // are unit-testable without touching the certificate store.
+    final Uint8List decoded;
+    try {
+      decoded = base64.decode(certificateBase64);
+    } on FormatException catch (error) {
+      return X509Failure(
+        code: X509ErrorCode.invalidFormat,
+        msg: 'Invalid base64 certificate data: ${error.message}',
+      );
+    }
+
+    if (decoded.isEmpty) {
+      return const X509Failure(
+        code: X509ErrorCode.invalidFormat,
+        msg: 'Certificate data is empty',
+      );
+    }
+
+    final der = Pem.normalizeToDer(decoded);
+    if (der == null) {
+      return const X509Failure(
+        code: X509ErrorCode.invalidFormat,
+        msg: 'Failed to convert PEM to DER format',
+      );
+    }
+
+    try {
+      return await _backend.addCertificate(
+        storeName: storeName,
+        der: der,
+        addType: addType,
+        setTrusted: setTrusted,
+      );
+    } catch (error) {
+      // A failed FFI symbol lookup or a missing platform library surfaces as
+      // an exception. Keep the sealed result total rather than letting it
+      // escape to the caller.
+      return X509Failure(
+        code: X509ErrorCode.unknown,
+        msg: 'An unexpected error occurred: $error',
+      );
+    }
   }
 }

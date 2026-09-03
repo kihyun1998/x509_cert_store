@@ -1,6 +1,6 @@
 # x509_cert_store
 
-Flutter desktop plugin that adds X.509 certificates to the operating-system certificate store on Windows and macOS.
+Dart package that adds X.509 certificates to the operating-system certificate store on Windows and macOS, reaching both through `dart:ffi`.
 
 ## Language
 
@@ -13,11 +13,15 @@ The portable identifier the plugin's public API uses to select a store. `X509Sto
 _Avoid_: Store ID, store type
 
 **Native error code**:
-The raw, platform-specific error returned by the underlying OS API: a Win32 `DWORD` (e.g. `CRYPT_E_EXISTS` = `0x80092005`) on Windows, an `OSStatus` from Apple's Security framework on macOS. Integral, never portable across platforms.
+The raw, platform-specific error returned by the underlying OS API over FFI: a Win32 `DWORD` (e.g. `CRYPT_E_EXISTS` = `0x80092005`) on Windows, an `OSStatus` from Apple's Security framework on macOS. Integral, never portable across platforms.
 _Avoid_: Errno (POSIX term), error number
 
+**Platform backend**:
+The per-platform implementation behind the public API, reached through `dart:ffi`: `WindowsCertStore` (wincrypt) or `MacOsCertStore` (Keychain Services). It receives DER bytes — base64 decoding and PEM normalization happen above it — and it owns the **Native error code** to **Error category** mapping. Substituting one is how tests exercise the public API without touching a real certificate store.
+_Avoid_: Native layer (there is no longer any native code), plugin, platform interface
+
 **Error category**:
-The portable, cross-platform meaning of a failure, represented by `X509ErrorCode` (an enum, post-2.0.0). Each **Native error code** maps to exactly one category at the native layer; the public Dart API exposes only categories, never raw native codes (except as the optional `nativeCode` field on `X509Failure` when the category is `unknown`).
+The portable, cross-platform meaning of a failure, represented by `X509ErrorCode` (an enum, post-2.0.0). Each **Native error code** maps to exactly one category inside the **Platform backend**; the public API exposes only categories, never raw native codes (except as the optional `nativeCode` field on `X509Failure` when the category is `unknown`).
 _Avoid_: Error type, error kind (overloaded in Dart language)
 
 ## Relationships
@@ -25,13 +29,13 @@ _Avoid_: Error type, error kind (overloaded in Dart language)
 - A **Certificate store** holds zero or more X.509 certificates
 - A **Cross-platform store name** identifies exactly one **Certificate store** at runtime
 - A **Native error code** belongs to exactly one platform
-- Each **Native error code** maps to exactly one **Error category** (at the native layer)
+- Each **Native error code** maps to exactly one **Error category** (inside the **Platform backend**)
 - An **Error category** has zero or more **Native error codes** mapped to it (across both platforms)
 
 ## Example dialogue
 
 > **Dev:** "If I call `addCertificate` and macOS returns `errSecDuplicateItem`, what does the consumer see?"
-> **Maintainer:** "The macOS native layer maps `errSecDuplicateItem` to the `alreadyExist` **Error category** and returns `X509Failure(code: X509ErrorCode.alreadyExist, ...)`. The consumer never sees `errSecDuplicateItem` itself — that's a **Native error code**, not part of the cross-platform contract."
+> **Maintainer:** "The macOS **Platform backend** maps `errSecDuplicateItem` to the `alreadyExist` **Error category** and returns `X509Failure(code: X509ErrorCode.alreadyExist, ...)`. The consumer never sees `errSecDuplicateItem` itself — that's a **Native error code**, not part of the cross-platform contract."
 
 ## Flagged ambiguities
 

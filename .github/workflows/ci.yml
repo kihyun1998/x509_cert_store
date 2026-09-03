@@ -6,21 +6,27 @@ on:
   pull_request:
 
 jobs:
+  # Runs on a bare Dart SDK with no Flutter available. This is the gate that
+  # keeps the package Dart-only: reintroducing a Flutter dependency fails here
+  # at resolution rather than being noticed later.
   analyze-and-test:
-    name: Analyze & Dart unit tests
+    name: Analyze & Dart tests (no Flutter)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-      - run: flutter pub get
+      - uses: dart-lang/setup-dart@v1
+      # `dart pub get` also resolves example/ by default, and example/ is a
+      # Flutter app - it cannot resolve without the Flutter SDK, which this job
+      # deliberately does not have. The example is analyzed and built by the
+      # desktop jobs below instead.
+      - run: dart pub get --no-example
+      # Formatting is syntax-only, so it still covers the whole tree.
       - run: dart format --output=none --set-exit-if-changed .
-      - run: flutter analyze
-      - run: flutter test
+      - run: dart analyze lib test
+      - run: dart test
 
-  build-windows:
-    name: Windows (build + native gtest)
+  windows:
+    name: Windows (FFI symbols + example build)
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,24 +34,24 @@ jobs:
         with:
           channel: stable
       - name: Resolve dependencies
+        run: dart pub get --no-example
+      # Includes test/windows_ffi_symbols_test.dart, which resolves every
+      # crypt32 and kernel32 entry point. Under the old C++ plugin a bad symbol
+      # was a link error; with FFI it would otherwise only surface at runtime
+      # on a user's machine.
+      - name: Dart tests
+        run: dart test
+      # The package no longer declares a plugin platform, so this proves a
+      # Flutter app still builds against it as a plain Dart dependency.
+      - name: Analyze and build Windows example
         working-directory: example
-        run: flutter pub get
-      - name: Build Windows example
-        working-directory: example
-        run: flutter build windows --debug
-      # The gtest target builds as part of `flutter build windows` and registers
-      # with ctest (PRE_TEST discovery). Run it directly with ctest instead of
-      # flutter_plugin_tools native-test, which hangs on a single-package repo.
-      # The test binary links the Flutter C++ wrapper, so flutter_windows.dll
-      # (in runner/Debug) must be on PATH.
-      - name: Run native tests
-        working-directory: example/build/windows/x64
         run: |
-          $env:PATH = "$PWD\runner\Debug;" + $env:PATH
-          ctest --test-dir plugins/x509_cert_store -C Debug --output-on-failure
+          flutter pub get
+          flutter analyze
+          flutter build windows --debug
 
-  build-macos:
-    name: macOS (build + native XCTest)
+  macos:
+    name: macOS (FFI symbols + example build)
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -53,18 +59,16 @@ jobs:
         with:
           channel: stable
       - name: Resolve dependencies
-        working-directory: example
-        run: flutter pub get
-      # Must build first, or the generated Flutter/ephemeral/*.xcfilelist files
-      # are missing and the Xcode build fails.
-      - name: Build macOS example
-        working-directory: example
-        run: flutter build macos --debug
-      - name: Run native tests
+        run: dart pub get --no-example
+      # Includes test/macos_ffi_symbols_test.dart, which resolves every
+      # CoreFoundation and Security symbol plus the CFString constants. This
+      # is the only place those lookups are exercised, since the Windows dev
+      # host cannot run them.
+      - name: Dart tests
+        run: dart test
+      - name: Analyze and build macOS example
         working-directory: example
         run: |
-          xcodebuild test \
-            -workspace macos/Runner.xcworkspace \
-            -scheme Runner \
-            -destination 'platform=macOS' \
-            CODE_SIGNING_ALLOWED=NO
+          flutter pub get
+          flutter analyze
+          flutter build macos --debug

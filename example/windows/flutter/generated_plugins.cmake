@@ -3,7 +3,6 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
-  x509_cert_store
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST

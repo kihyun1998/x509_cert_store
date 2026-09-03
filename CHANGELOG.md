@@ -1,3 +1,24 @@
+## 3.0.0
+
+### BREAKING CHANGES
+- The package is no longer a Flutter plugin. The Windows C++ and macOS Swift implementations are replaced by `dart:ffi` calls into `crypt32.dll` and the Security framework, and the `flutter` dependency is dropped entirely - `x509_cert_store` is now a plain Dart package usable from Flutter apps and Dart CLI programs alike.
+- **The public API is unchanged.** `X509CertStore`, `X509Result`, `X509ErrorCode`, `X509StoreName`, and `X509AddType` keep their existing shapes, so no consumer code needs editing. Because the generated plugin registrant changes, run `flutter clean` and `flutter pub get` once after upgrading.
+- Removed the internal `X509CertStorePlatform` / `MethodChannelX509CertStore` classes and the `plugin_platform_interface` dependency. Neither was exported from `package:x509_cert_store/x509_cert_store.dart`, so this is not a source-breaking change.
+
+### Changed
+- Base64 decoding and PEM/DER normalization now run in Dart before the platform call, so `invalidFormat` for empty, malformed, or non-decodable input is reported identically on every platform.
+- Certificate identity for duplicate detection is parsed from the certificate DER in Dart (issuer + serial number) rather than through `SecCertificateCopyNormalizedIssuerSequence` / `SecCertificateCopySerialNumberData`, and `addNewer` compares a `notBefore` parsed from DER rather than one read via `SecCertificateCopyValues`.
+- Platform calls run on a worker isolate, so the system confirmation and authorization prompts they can raise no longer block the calling isolate.
+- macOS trust elevation uses `osascript` in place of `NSAppleScript`; the `security add-trusted-cert` invocation is otherwise identical.
+
+### Fixed
+- Documented macOS store behaviour accurately: the certificate is added to the default keychain for both `X509StoreName` values, which select the trust mechanism rather than the destination keychain. The README previously described `root` and `my` as targeting the System and Login keychains, which the implementation never did.
+
+### Internal
+- Deleted `windows/` and `macos/` along with the CMake, podspec, gtest, and XCTest build surface.
+- `dart test` now covers PEM/DER handling, DER parsing, certificate identity, and result mapping on any host - logic that previously required a macOS runner to exercise. FFI symbol resolution is pinned per platform by `test/windows_ffi_symbols_test.dart` and `test/macos_ffi_symbols_test.dart`.
+- CI analyzes and tests on a bare Dart SDK with no Flutter installed, so reintroducing a Flutter dependency fails the build.
+
 ## 2.0.2
 
 ### Fixed
