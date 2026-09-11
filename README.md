@@ -22,9 +22,10 @@ A Dart package for Windows and macOS desktop applications that enables adding X.
 
 | macOS | Windows | Linux |
 |:-----:|:-------:|:-----:|
-|   ✅   |    ✅    |   🔜   |
+|   ✅   |    ✅    |   ❌   |
 
-Linux support coming soon!
+Linux is not supported. The plugin ships only Windows and macOS
+implementations; calling it on Linux throws `MissingPluginException`.
 
 ## Installation
 
