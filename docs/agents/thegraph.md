@@ -35,7 +35,7 @@ not restated here.
 |---|---|---|
 | `classify` | 1 | catalog |
 | `spine` | 1 | catalog; roster is a relation — see [Tracker capability](#tracker-capability) |
-| `map` | **none** | No territory map exists. `CONTEXT.md` is a glossary, not a map; the `CODE.md` named in `.pubignore` is not committed. The tree is small enough to be its own map. |
+| `map` | **none** | No territory map exists. `GLOSSARY.md` is a glossary, not a map; the `CODE.md` named in `.pubignore` is not committed. The tree is small enough to be its own map. |
 | `reference` | 1 per source class — the classes are listed below | asked |
 | `enumerate` | 1 | catalog |
 | `boundary` | 1 | catalog |
@@ -116,7 +116,7 @@ Three groups, and the reason each is here:
 | `README.md` | API reference and platform-behaviour sections |
 | `MIGRATION.md` | before/after examples per usage pattern |
 | `CHANGELOG.md` | append at top under the version heading |
-| `CONTEXT.md` | glossary terms and their `_Avoid_` lists |
+| `GLOSSARY.md` | glossary terms and their `_Avoid_` lists |
 | `docs/adr/NNNN-*.md` | amend a record whose premise the change falsified |
 | `lib/**/*.dart` doc-comments | these ship verbatim to pub.dev API docs |
 | the three wire-contract files' own comments | each names the other two as the thing to keep in sync |
@@ -127,7 +127,7 @@ Three groups, and the reason each is here:
 `CHANGELOG.md` shipped in that tarball, so a published entry is frozen and can
 only be superseded, never rewritten.
 
-**Glossary:** `CONTEXT.md` at the repo root. **Decision records:** `docs/adr/`.
+**Glossary:** `GLOSSARY.md` at the repo root. **Decision records:** `docs/adr/`.
 Both declared in `CLAUDE.md` and `docs/agents/domain.md`.
 
 ### `place` — tree rule
@@ -152,7 +152,7 @@ Concrete paths, matchable against a diff.
 | `docs/adr/NNNN-*.md` | decision records |
 | `docs/agents/*.md` | agent skill bindings |
 | `README.md`, `CHANGELOG.md`, `MIGRATION.md`, `LICENSE` | consumer-facing, published to pub.dev |
-| `CLAUDE.md`, `CONTEXT.md` | agent- and maintainer-facing, at the root by declaration, excluded from the package |
+| `CLAUDE.md`, `GLOSSARY.md` | agent- and maintainer-facing, at the root by declaration, excluded from the package |
 | any other `*.md` at the repo root | **no owner** — scratch, and must be excluded in `.pubignore` |
 
 Its prior art is the `reference` peer class above and its exceptions are in the
@@ -361,7 +361,7 @@ abstractions.
   v2.0.0. Issue #2, ADR-0001. *Feeds the tie-breaker and the boundary rule.*
 - **W5 — `todo.md` shipped to pub.dev in 2.0.2**, carrying a Korean note about an
   unfixed replace bug. `.pubignore` excludes `openssl.md`, `CLAUDE.md`,
-  `CONTEXT.md` and `docs/` by name and never mentioned `todo.md`. Found by
+  `GLOSSARY.md` and `docs/` by name and never mentioned `todo.md`. Found by
   opening the published tarball in the pub cache, **not** by reading
   `.pubignore` — which would have shown a file list that looked well managed.
   *Feeds gate blind spot 5 and the tree rule's last row.*
