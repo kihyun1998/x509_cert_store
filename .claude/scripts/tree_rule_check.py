@@ -47,7 +47,7 @@ TREE_RULE: list[tuple[str, str]] = [
     ("MIGRATION.md", "consumer-facing, published"),
     ("LICENSE", "consumer-facing, published"),
     ("CLAUDE.md", "agent-facing, at root by declaration, excluded from the package"),
-    ("CONTEXT.md", "agent-facing, at root by declaration, excluded from the package"),
+    ("GLOSSARY.md", "agent-facing, at root by declaration, excluded from the package"),
     ("pubspec.yaml", "the package manifest"),
     ("pubspec.lock", "the resolved manifest"),
     ("analysis_options.yaml", "lint configuration"),
@@ -62,7 +62,7 @@ TREE_RULE: list[tuple[str, str]] = [
 # package. This is war story W5 -- todo.md shipped to pub.dev in 2.0.2 carrying
 # a note about an unfixed bug, and no gate noticed.
 CONSUMER_ROOT_DOCS = {"README.md", "CHANGELOG.md", "MIGRATION.md"}
-ROOT_DOCS_EXCLUDED_BY_DECLARATION = {"CLAUDE.md", "CONTEXT.md"}
+ROOT_DOCS_EXCLUDED_BY_DECLARATION = {"CLAUDE.md", "GLOSSARY.md"}
 
 
 def matches(path: str) -> str | None:

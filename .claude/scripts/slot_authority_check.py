@@ -103,7 +103,7 @@ SURFACES = [
     "README.md",
     "MIGRATION.md",
     "CHANGELOG.md",
-    "CONTEXT.md",
+    "GLOSSARY.md",
     "docs/adr",
     "pubspec.yaml",
     "example/lib/main.dart",
@@ -167,10 +167,10 @@ def check_downstream(doc: str) -> None:
 # --- glossary and record locations: authority is CLAUDE.md / domain.md -------
 def check_declarations(doc: str) -> None:
     claude = (REPO / "CLAUDE.md").read_text(encoding="utf-8")
-    check("CLAUDE.md no longer declares CONTEXT.md", "CONTEXT.md" in claude)
+    check("CLAUDE.md no longer declares GLOSSARY.md", "GLOSSARY.md" in claude)
     check("CLAUDE.md no longer declares docs/adr/", "docs/adr/" in claude)
-    check("CONTEXT.md is missing", (REPO / "CONTEXT.md").is_file())
-    check("the graph doc does not name CONTEXT.md as the glossary", "CONTEXT.md" in doc)
+    check("GLOSSARY.md is missing", (REPO / "GLOSSARY.md").is_file())
+    check("the graph doc does not name GLOSSARY.md as the glossary", "GLOSSARY.md" in doc)
 
 
 def main() -> int:

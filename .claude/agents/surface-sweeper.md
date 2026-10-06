@@ -14,7 +14,7 @@ made stale. **You do not edit it** — the edits are applied on the main thread.
 | `README.md` | the API reference and platform-behaviour sections |
 | `MIGRATION.md` | the before/after example for each usage pattern |
 | `CHANGELOG.md` | the top version heading. Published entries are frozen and can only be superseded, never rewritten |
-| `CONTEXT.md` | glossary terms and their `_Avoid_` lists |
+| `GLOSSARY.md` | glossary terms and their `_Avoid_` lists |
 | `docs/adr/NNNN-*.md` | a record whose premise this change falsified is amended in this same change |
 | `lib/**/*.dart` doc-comments | these ship verbatim to the pub.dev API docs |
 | `windows/x509_cert_store_categories.h`, `macos/Classes/CategoryKeys.swift`, `lib/src/x509_cert_store_method_channel.dart` | each of the three comments names the other two as what to keep in sync |
