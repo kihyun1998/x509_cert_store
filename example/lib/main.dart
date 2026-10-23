@@ -1,6 +1,5 @@
 // main.dart
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -545,19 +544,18 @@ class _CertificateManagerPageState extends State<CertificateManagerPage> {
 
   Future<void> _loadCertificateFromFile() async {
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
+      PlatformFile? file = await FilePicker.pickFile(
         type: FileType.custom,
         allowedExtensions: ['crt', 'pem', 'cer', 'der'],
       );
 
-      if (result != null) {
-        File file = File(result.files.single.path!);
+      if (file != null) {
         Uint8List bytes = await file.readAsBytes();
         String base64Cert = base64Encode(bytes);
 
         setState(() {
           _certificateController.text = base64Cert;
-          _loadedFilename = result.files.single.name;
+          _loadedFilename = file.name;
         });
       }
     } catch (e) {
