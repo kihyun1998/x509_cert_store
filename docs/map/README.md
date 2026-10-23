@@ -52,6 +52,9 @@ at the synced commit.
 
 ## Conventions
 
+- Before starting a new note, search this folder and the code symbol for one
+  that already holds the fact; a new note is named for what the system does
+  there, not for the file.
 - Section headings are identical in every note; an empty section says **None.**
 - Code is cited by symbol, never by line number.
 - A fact another artifact owns is linked, not restated.
