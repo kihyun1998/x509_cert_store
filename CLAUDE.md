@@ -15,3 +15,44 @@ Uses the default canonical triage labels (`needs-triage`, `needs-info`, `ready-f
 ### Domain docs
 
 Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root (created lazily by `/grill-with-docs`). See `docs/agents/domain.md`.
+
+## Map
+
+The territory map is [`docs/map/README.md`](docs/map/README.md).
+
+- **Read before the change** — before designing one (`read-it`), open the
+  territory that owns the code, walk its blast radius and its invariants.
+- **Write after it lands** — once the change is complete (`sweep`), update
+  the notes it made false.
+- **Promotion, at the first fix.** When a fix reveals a fact, ask: does this
+  hold at every site that shares the same assumption? If yes, the fix lands
+  with an invariant note under `docs/map/invariant/`.
+
+## Comments
+
+A comment says what the code is. Why it is this way, what it deliberately
+leaves out, the trap and the measured value go to the territory note under
+`docs/map/`. Where none seems to hold it, search the folder and the code symbol
+first; only then start a new note, named for what the system does there, not
+for the file. History goes to the commit message. Comments written before this
+rule still carry the rest: never delete one whose content the map does not yet
+hold — move it first (`decant`).
+
+## Seams
+
+- **Core:** the native-error → `X509ErrorCode` mapping. It lives in each
+  platform backend (`lib/src/windows/`, `lib/src/macos/`), right after the FFI
+  call that produced the `DWORD` / `OSStatus` — never above the backend seam
+  (ADR-0001, amendment).
+- **The seam:** `X509CertStoreBackend` (`lib/src/backend.dart`). Policy crosses
+  it as arguments — store (`X509StoreName`), addition behaviour
+  (`X509AddType`), `setTrusted` — and the core is agnostic to all three. Input
+  normalization (base64, PEM → DER) happens above it.
+- **The consumer owns:** the reaction to each `X509ErrorCode` — retry, an
+  elevation prompt, a fallback store; the package decides none of them — and
+  base64-encoding the certificate.
+- **Contracts, not defects.** A report against either is a request to change
+  the contract:
+  - on macOS a trust failure after a successful add is swallowed; the
+    certificate stays added.
+  - `setTrusted` is ignored on Windows.
