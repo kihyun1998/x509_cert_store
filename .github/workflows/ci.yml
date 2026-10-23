@@ -13,7 +13,7 @@ jobs:
     name: Analyze & Dart tests (no Flutter)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dart-lang/setup-dart@v1
       # `dart pub get` also resolves example/ by default, and example/ is a
       # Flutter app - it cannot resolve without the Flutter SDK, which this job
@@ -29,7 +29,7 @@ jobs:
     name: Windows (FFI symbols + example build)
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
@@ -54,7 +54,7 @@ jobs:
     name: macOS (FFI symbols + example build)
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
