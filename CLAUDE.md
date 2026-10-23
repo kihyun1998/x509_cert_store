@@ -2,19 +2,13 @@
 
 A Flutter/Dart package for accessing X.509 certificates from the platform certificate store.
 
-## Agent skills
+## Agent docs
 
-### Issue tracker
-
-Issues live as GitHub issues on `kihyun1998/x509_cert_store`, managed via the `gh` CLI. See `docs/agents/issue-tracker.md`.
-
-### Triage labels
-
-Uses the default canonical triage labels (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
-
-### Domain docs
-
-Single-context: one `GLOSSARY.md` and `docs/adr/` at the repo root (created lazily by `/grill-with-docs`). See `docs/agents/domain.md`.
+| When | Read |
+|---|---|
+| opening, reading, commenting on or labelling an issue | `docs/agents/issue-tracker.md` |
+| a skill names a triage role | `docs/agents/triage-labels.md` — role → label string |
+| before exploring an area | `GLOSSARY.md` and the `docs/adr/` records touching it — `docs/agents/domain.md` |
 
 ## Map
 
@@ -32,11 +26,9 @@ The territory map is [`docs/map/README.md`](docs/map/README.md).
 
 A comment says what the code is. Why it is this way, what it deliberately
 leaves out, the trap and the measured value go to the territory note under
-`docs/map/`. Where none seems to hold it, search the folder and the code symbol
-first; only then start a new note, named for what the system does there, not
-for the file. History goes to the commit message. Comments written before this
-rule still carry the rest: never delete one whose content the map does not yet
-hold — move it first (`decant`).
+`docs/map/`; a new note follows `docs/map/README.md` § Conventions. History
+goes to the commit message. Before deleting a comment, move whatever the map
+does not yet hold into it (`decant`).
 
 ## Seams
 
