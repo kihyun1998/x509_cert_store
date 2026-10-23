@@ -19,11 +19,18 @@ version.
 - A published version renders the `CHANGELOG.md` in its own tarball, so a
   published entry can be superseded but never rewritten (old thegraph build,
   2026-09-03).
+- `.github/dependabot.yml` raises the root's constraints with
+  `increase-if-necessary`, one PR per dependency. The root commits no
+  lockfile, so a PR opens only when a release falls outside the caret — at
+  `0.x`, every minor — and each one is a floor decision for consumers, not a
+  chore. `example/` and the workflow actions ship nothing, so their PRs come
+  grouped, monthly (#24).
 - W5: `todo.md` shipped in 2.0.2 and was found by opening the tarball, not by
   reading `.pubignore` (ADR-0003).
 
 ## Code
 - `pubspec.yaml`, `.pubignore`, `README.md`, `CHANGELOG.md`, `MIGRATION.md`, `LICENSE`.
+- `.github/dependabot.yml`.
 
 ## Reference behaviour
 **None.**
