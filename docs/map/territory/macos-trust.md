@@ -22,6 +22,11 @@ From the source:
   `codeSign`, `basic` (`_trustArguments`).
 - The elevated script is one `osascript -e` argument; the PEM path is
   single-quoted inside it.
+- `-d` is the admin trust domain for both store names: `security(1)` reads
+  "-d  Add to admin cert store; default is user", and changing admin trust
+  settings needs root or administrator authentication (man page on a macOS
+  host, 2026-10-23). `my` therefore asks for admin trust without elevating;
+  the README says so.
 
 ## Code
 - `lib/src/macos/trust.dart` — `applyTrust`, `_trustArguments`, `_addTrustedCert`, `_addTrustedCertElevated`.
@@ -39,6 +44,5 @@ From the source:
 - [release](release.md) — the README's macOS section describes this behaviour to consumers.
 
 ## Known holes / open
-- The README says `my` "requests trust as the current user"; both invocations pass `-d`, the admin trust domain. Which one is right was not checked against `security(1)`.
 - A temp path containing a single quote would break the elevated script's quoting; the path comes from `Directory.systemTemp`.
 - Neither `security` nor `osascript` is tested anywhere — see [verification](verification.md).

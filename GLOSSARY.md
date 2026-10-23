@@ -9,7 +9,7 @@ The OS-managed location where X.509 certificates are persisted. On Windows this 
 _Avoid_: Cert vault, keystore (Java/Android term)
 
 **Cross-platform store name**:
-The portable identifier the plugin's public API uses to select a store. `X509StoreName.root` and `X509StoreName.my` map to the platform-specific **Certificate store** at the native layer.
+The portable identifier the package's public API uses to select a store. `X509StoreName.root` and `X509StoreName.my` map to the platform-specific **Certificate store** inside the **Platform backend**.
 _Avoid_: Store ID, store type
 
 **Native error code**:

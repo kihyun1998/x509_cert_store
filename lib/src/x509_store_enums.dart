@@ -36,7 +36,8 @@ enum X509StoreName {
 ///
 /// Each enum value represents a semantic category that is mapped from
 /// platform-specific native error codes (Win32 `DWORD` on Windows, Security
-/// framework `OSStatus` on macOS) at the native layer. The public Dart API
+/// framework `OSStatus` on macOS) inside each platform backend, in Dart, right
+/// after the FFI call that produced the code. The public Dart API
 /// exposes only categories, never raw native codes (the raw value, when
 /// preserved, lives on `X509Failure.nativeCode`).
 enum X509ErrorCode {

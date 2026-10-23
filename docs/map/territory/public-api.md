@@ -47,6 +47,5 @@ decoded whole in memory.
 - [example-app](example-app.md) — it pattern-matches `X509Result` and lists every enum value in its UI.
 
 ## Known holes / open
-- The library doc-comment on `lib/x509_cert_store.dart` still says "A Flutter plugin", and `X509ErrorCode`'s says the mapping happens "at the native layer"; both stopped being true in 3.0.0 (CHANGELOG 3.0.0) and both ship to pub.dev.
 - `X509AddType.addNewer`'s doc-comment says a not-newer certificate "succeeds"; on Windows it returns `alreadyExist` — undecided, see [wincrypt disposition parity](../invariant/wincrypt-disposition-parity.md).
 - No bound on the size of `certificateBase64`.
