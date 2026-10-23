@@ -39,4 +39,4 @@ version.
 ## Known holes / open
 - `todo.md` is tracked and not excluded by `.pubignore`, so it ships in the next publish — the W5 repeat ADR-0003's last row exists to prevent.
 - Nothing checks the built package against `.pubignore`.
-- Stale descriptions that ship or are read as identity: the barrel's "A Flutter plugin" (see [public-api](public-api.md)); `GLOSSARY.md`'s **Cross-platform store name**, still mapped "at the native layer"; `CLAUDE.md`'s first line, "A Flutter/Dart package".
+- Stale descriptions that ship or are read as identity: the barrel's "A Flutter plugin" (see [public-api](public-api.md)); `GLOSSARY.md`'s **Cross-platform store name**, still mapped "at the native layer".

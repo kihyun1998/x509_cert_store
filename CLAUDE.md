@@ -1,6 +1,7 @@
 # x509_cert_store
 
-A Flutter/Dart package for accessing X.509 certificates from the platform certificate store.
+A plain Dart package that adds X.509 certificates to the Windows and macOS
+certificate stores over `dart:ffi`.
 
 ## Agent docs
 
