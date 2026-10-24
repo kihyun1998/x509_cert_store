@@ -53,3 +53,4 @@ From the source and ADR-0002:
 ## Known holes / open
 - No test reaches a certificate store; `example/integration_test/` is run by no CI job (ADR-0002).
 - [macos-trust](macos-trust.md) is untested.
+- The Windows last-error test (`a failed wincrypt call reports a non-zero Win32 error`) stays green with `ensureBindingsResolved`'s list read removed, on `windows-latest` (CI run 40066712623, 2026-10-24), so it no longer reproduces the clobber it guards against. It does fail when the reported Win32 value is 0 (run 40066976069).
