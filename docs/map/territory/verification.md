@@ -16,10 +16,11 @@ From the source and ADR-0002:
   `failureFromOSStatus` (`@visibleForTesting`) from one table of conditions on
   every host, and fails while a category is neither in the table nor exempted.
 - `test/windows_ffi_symbols_test.dart` and `test/macos_ffi_symbols_test.dart`
-  (`@TestOn`) resolve every binding; Windows iterates `windowsBindings`, the
-  list `ensureBindingsResolved` also reads, and calls `GetLastError`; macOS
-  still lists its bindings by hand. A missing symbol is otherwise a runtime failure on a user's
-  machine.
+  (`@TestOn`) resolve every binding. Windows iterates `windowsBindings` (see
+  [windows-store](windows-store.md)) and calls `GetLastError`; macOS lists its
+  bindings by hand. A missing symbol is otherwise a runtime failure on a
+  user's machine. The Windows test was seen failing on CI with a misspelled
+  `CertCloseStore` (#36, 2026-10-24).
 - `test/pem_test.dart` and `test/certificate_fields_test.dart` exercise pure
   Dart on any host, against `test/fixtures/test_certificates.dart`.
 - CI (`.github/workflows/ci.yml`): one job on a bare Dart SDK with no Flutter —
@@ -31,18 +32,18 @@ From the source and ADR-0002:
   execute it.
 
 ## Code
-- `test/x509_cert_store_test.dart`, `test/pem_test.dart`, `test/certificate_fields_test.dart`, `test/windows_ffi_symbols_test.dart`, `test/macos_ffi_symbols_test.dart`, `test/fixtures/test_certificates.dart`.
+- `test/x509_cert_store_test.dart`, `test/failure_category_parity_test.dart`, `test/pem_test.dart`, `test/certificate_fields_test.dart`, `test/windows_ffi_symbols_test.dart`, `test/macos_ffi_symbols_test.dart`, `test/fixtures/test_certificates.dart`.
 - `.github/workflows/ci.yml` — jobs `analyze-and-test`, `windows`, `macos`.
 
 ## Reference behaviour
 **None.**
 
 ## Cross-cutting invariants
-**None.**
+- [failure category parity](../invariant/failure-category-parity.md)
 
 ## Blast radius
-- [windows-store](windows-store.md) — its symbol test repeats the binding list; the two drift apart silently.
-- [macos-keychain](macos-keychain.md) — the same, for Security and CoreFoundation symbols and constants.
+- [windows-store](windows-store.md) — its symbol test and the parity test read `windowsBindings` and `failureFromWinError` from there.
+- [macos-keychain](macos-keychain.md) — its symbol test repeats the Security and CoreFoundation bindings by hand, and the two drift apart silently; the parity test calls `failureFromOSStatus`.
 - [backend-seam](backend-seam.md) — the fake backend is only as faithful as the interface it implements.
 - [release](release.md) — the no-Flutter job is the gate behind the "Dart-only" claim in `pubspec.yaml` and the README.
 - [example-app](example-app.md) — the desktop jobs build it, so a public API break fails there too.

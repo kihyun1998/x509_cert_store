@@ -1,5 +1,5 @@
 <!-- grill-map build stamp: 8e5a943 -->
-<!-- grill-map synced at: 60f8c57 (2026-10-06) -->
+<!-- grill-map synced at: d25bf8e (2026-10-24) -->
 
 # The territory map
 
@@ -20,17 +20,19 @@ for a given change is a correct outcome.
 
 ## The system in one paragraph
 
-`x509_cert_store` takes a base64 string, normalizes it to DER above a single
-seam, and hands it to a **Platform backend** that adds the certificate to the
+`x509_cert_store` takes a base64 string, normalizes it to DER and checks that
+it parses as a certificate above a single seam, and hands it to a **Platform
+backend** that adds the certificate to the
 Windows wincrypt store or the macOS keychain over `dart:ffi`, maps the
 **Native error code** to an **Error category**, and returns a sealed
 `X509Result`. macOS has to re-implement, in Dart, the add dispositions wincrypt
 provides natively, and so parses certificate identity from DER itself. The
 package is plain Dart and ships to pub.dev. The largest gap: nothing in CI
 reaches a real certificate store
-([ADR-0002](../adr/0002-the-test-suite-stops-at-the-backend-seam.md)), so the
-two parity invariants below are held by reading alone — and both are violated
-at the synced commit.
+([ADR-0002](../adr/0002-the-test-suite-stops-at-the-backend-seam.md)). Failure
+category parity has a test for the two mapping tables but not for what each
+platform rejects; wincrypt disposition parity is held by reading alone. Both
+are violated at the synced commit.
 
 ## Territories
 

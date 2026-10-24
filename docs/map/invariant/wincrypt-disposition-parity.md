@@ -25,7 +25,7 @@ per platform.
 The same `addCertificate` call returns a different `X509Result`, or leaves a
 different store state, on the two platforms.
 
-**Present at HEAD (60f8c57):** `addNewer` when the stored certificate is the
+**Present at HEAD (d25bf8e):** `addNewer` when the stored certificate is the
 same age or newer. wincrypt fails with `CRYPT_E_EXISTS` (the
 `CERT_STORE_ADD_NEWER` comment in `wincrypt.h`, 10.0.19041.0), which
 `_categoryFromWinError` maps to `alreadyExist`; macOS returns `X509Success()`

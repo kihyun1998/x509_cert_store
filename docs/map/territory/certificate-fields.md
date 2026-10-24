@@ -3,7 +3,8 @@
 ## What it is
 A deliberately small DER reader and the three certificate fields read with it
 — issuer, serial number, `notBefore` — which give the macOS backend its
-certificate identity and its "newer" test.
+certificate identity and its "newer" test, and the public API its certificate
+structure check.
 
 ## Governing decisions
 **None.** CHANGELOG 3.0.0 records why the fields are parsed in Dart rather than read through Security APIs; no decision record covers it.
@@ -23,7 +24,8 @@ From the source:
   `MIGRATION.md` names the one case where that differs from 2.x.
 - `notBefore` accepts UTCTime and GeneralizedTime ending in `Z` only;
   UTCTime years of 50 and above are 19YY.
-- The only caller is the macOS backend (`grep -rn CertificateFields lib`).
+- Two callers: `X509CertStore.addCertificate`, which refuses what `parse`
+  refuses, and the macOS backend (`grep -rn CertificateFields.parse lib`).
 
 Input: bounded by the buffer — every length is checked against it before use.
 
@@ -40,7 +42,7 @@ Input: bounded by the buffer — every length is checked against it before use.
 ## Blast radius
 - [macos-keychain](macos-keychain.md) — identity and `notBefore` decide which disposition branch runs, and `parse` returning `null` is its `invalidFormat`.
 - [input-normalization](input-normalization.md) — `X509CertStore.addCertificate` refuses whatever `parse` refuses, on every platform.
-- [verification](verification.md) — `test/certificate_fields_test.dart` is the only place this logic is exercised on every host.
+- [verification](verification.md) — `test/certificate_fields_test.dart`, and the public API's malformed-DER cases in `test/x509_cert_store_test.dart`, exercise this on every host.
 
 ## Known holes / open
 - Whether wincrypt compares issuer names byte for byte, as this does, was not checked.

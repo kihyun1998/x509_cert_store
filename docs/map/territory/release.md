@@ -30,6 +30,9 @@ version.
   `0.x`, every minor — and each one is a floor decision for consumers, not a
   chore. `example/` and the workflow actions ship nothing, so their PRs come
   grouped, monthly (#24).
+- `pubspec.yaml` and `CHANGELOG.md` are at 3.0.1 (maintainer, 2026-10-24),
+  while pub.dev's latest is 3.0.0 (pub.dev API, 2026-10-24): the 3.0.1 entry
+  is unpublished and can still be edited.
 - W5: `todo.md` shipped in 2.0.2 and was found by opening the tarball, not by
   reading `.pubignore` (ADR-0003).
 
