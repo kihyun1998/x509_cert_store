@@ -23,6 +23,11 @@ From the source and ADR-0002:
   bindings by hand. A missing symbol is otherwise a runtime failure on a
   user's machine. The Windows test was seen failing on CI with a misspelled
   `CertCloseStore` (#36, 2026-10-24).
+- The Windows last-error test (`a failed wincrypt call reports a non-zero
+  Win32 error`) fails with the `ensureBindingsResolved()` call removed, on
+  `windows-latest` (CI run 40080585761, 2026-10-24). What closes the window
+  is the `getLastError()` call inside it: with only its `windowsBindings`
+  read removed, the test stays green (run 40066712623).
 - `test/pem_test.dart` and `test/certificate_fields_test.dart` exercise pure
   Dart on any host, against `test/fixtures/test_certificates.dart`.
 - CI (`.github/workflows/ci.yml`): one job on a bare Dart SDK with no Flutter —
@@ -53,4 +58,3 @@ From the source and ADR-0002:
 ## Known holes / open
 - No test reaches a certificate store; `example/integration_test/` is run by no CI job (ADR-0002).
 - [macos-trust](macos-trust.md) is untested.
-- The Windows last-error test (`a failed wincrypt call reports a non-zero Win32 error`) stays green with `ensureBindingsResolved`'s list read removed, on `windows-latest` (CI run 40066712623, 2026-10-24), so it no longer reproduces the clobber it guards against. It does fail when the reported Win32 value is 0 (run 40066976069).
