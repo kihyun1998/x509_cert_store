@@ -1,3 +1,9 @@
+## 3.0.1
+
+- Malformed certificate data is rejected as `X509ErrorCode.invalidFormat` before any platform call, on every platform: bytes that start like DER (`0x30`) but are truncated, overrun their declared length, use an indefinite length, or are not a certificate. On Windows these previously failed inside wincrypt as `unknown` with a raw `nativeCode`; if you matched `unknown` for such input, match `invalidFormat`. They no longer reach a certificate store or raise a system prompt.
+- The API docs describe a plain Dart package over `dart:ffi`, and `X509ErrorCode` documents that the mapping runs inside each platform backend.
+- README: on macOS, `X509StoreName.my` also requests admin-domain trust (`add-trusted-cert -d`), without elevating.
+
 ## 3.0.0
 
 ### BREAKING CHANGES

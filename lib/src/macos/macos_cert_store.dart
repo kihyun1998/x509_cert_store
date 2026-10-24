@@ -3,6 +3,7 @@ import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:ffi/ffi.dart';
+import 'package:meta/meta.dart';
 
 import '../asn1/certificate_fields.dart';
 import '../backend.dart';
@@ -86,12 +87,12 @@ X509Result _addCertificateSync(Uint8List der, int addType) {
             }
             final newerDeleteStatus = _deleteCertificate(existing);
             if (newerDeleteStatus != errSecSuccess) {
-              return _failure(newerDeleteStatus);
+              return failureFromOSStatus(newerDeleteStatus);
             }
           case _certStoreAddReplaceExisting:
             final replaceDeleteStatus = _deleteCertificate(existing);
             if (replaceDeleteStatus != errSecSuccess) {
-              return _failure(replaceDeleteStatus);
+              return failureFromOSStatus(replaceDeleteStatus);
             }
         }
       } finally {
@@ -107,7 +108,7 @@ X509Result _addCertificateSync(Uint8List der, int addType) {
         msg: 'Certificate already exists',
       );
     }
-    return _failure(status);
+    return failureFromOSStatus(status);
   } finally {
     cfRelease(certificate);
   }
@@ -259,7 +260,8 @@ Pointer<Void> _createDictionary(
 /// Builds a failure from an `OSStatus`, preserving the raw value only for the
 /// `unknown` category - a matched category already gives the caller the
 /// portable answer.
-X509Failure _failure(int status) {
+@visibleForTesting
+X509Failure failureFromOSStatus(int status) {
   final category = _categoryFromOSStatus(status);
   return X509Failure(
     code: category,

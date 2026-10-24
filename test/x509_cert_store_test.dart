@@ -86,6 +86,55 @@ void main() {
     });
   });
 
+  group('malformed DER is rejected before the platform layer', () {
+    Future<(X509Result, FakeBackend)> addDer(List<int> der) async {
+      final backend = FakeBackend();
+      final result = await X509CertStore.withBackend(backend).addCertificate(
+        storeName: X509StoreName.my,
+        certificateBase64: base64.encode(der),
+        addType: X509AddType.addNew,
+      );
+      return (result, backend);
+    }
+
+    final cases = <String, List<int>>{
+      'bytes that start with 0x30 but are not a certificate': [
+        0x30, 0x03, 0x01, 0x02, 0x03, //
+      ],
+      'a truncated certificate':
+          certificateDer.sublist(0, certificateDer.length ~/ 2),
+      'a SEQUENCE whose declared length overruns the buffer': [
+        0x30, 0x82, 0xFF, 0xFF, //
+      ],
+      'an indefinite-length SEQUENCE': [0x30, 0x80, 0x00, 0x00],
+    };
+
+    for (final MapEntry(key: name, value: der) in cases.entries) {
+      test('$name -> invalidFormat, backend never called', () async {
+        final (result, backend) = await addDer(der);
+
+        expect(
+          result,
+          const X509Failure(
+            code: X509ErrorCode.invalidFormat,
+            msg: 'Invalid certificate data',
+          ),
+        );
+        expect(backend.callCount, 0);
+      });
+    }
+
+    test('a v1 certificate, with no version field, reaches the backend',
+        () async {
+      final v1 = base64.decode(certificateV1Base64);
+      final (result, backend) = await addDer(v1);
+
+      expect(result, isA<X509Success>());
+      expect(backend.callCount, 1);
+      expect(backend.lastDer, v1);
+    });
+  });
+
   group('the backend always receives DER', () {
     test('base64-encoded DER is passed through unchanged', () async {
       final backend = FakeBackend();

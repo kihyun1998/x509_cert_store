@@ -11,8 +11,8 @@ it. Everything exported from `package:x509_cert_store/x509_cert_store.dart`.
 ## Design model
 From ADR-0001 and the source:
 - `addCertificate` is total: every path returns an `X509Result`. Invalid
-  base64, empty input and undecodable PEM return `invalidFormat` before the
-  backend is reached; anything the backend throws becomes `unknown` with no
+  base64, empty input, undecodable PEM and DER that does not parse as a
+  certificate return `invalidFormat` before the backend is reached; anything the backend throws becomes `unknown` with no
   `nativeCode` (`X509CertStore.addCertificate`, the final `catch`).
 - `X509StoreName.getString` (`ROOT`/`MY`) is a wincrypt store name; only the
   Windows backend reads it. macOS reads the enum value itself, to choose a

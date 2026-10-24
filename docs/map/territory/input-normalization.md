@@ -2,8 +2,8 @@
 
 ## What it is
 Turning the caller's base64 string into the DER bytes a backend receives:
-base64 decode, the empty check, and PEM-to-DER. It runs above the backend
-seam, once, for both platforms.
+base64 decode, the empty check, PEM-to-DER, and the certificate structure
+check. It runs above the backend seam, once, for both platforms.
 
 ## Governing decisions
 **None.** [ADR-0001](../../adr/0001-sealed-result-type-with-categorical-error-codes.md) decides the result shape this step reports through, not how input is decoded.
@@ -17,15 +17,18 @@ From the source:
 - `Pem.decodePem` takes the **first** certificate block only; later blocks in
   a bundle are ignored without a report. END before BEGIN, a missing END, an
   empty body and a non-base64 body all return `null`.
-- Everything passed through is validated only by the platform, so the
-  category it fails with is the backend's — see
+- The DER is then required to parse with `CertificateFields.parse`; a `null`
+  becomes `invalidFormat` with no backend call, so truncated, overrunning,
+  indefinite-length and 0x30-prefixed non-certificate input fail identically
+  everywhere. What `parse` accepts and the platform still rejects is the
+  backend's to categorize — see
   [failure category parity](../invariant/failure-category-parity.md).
 
 Input: no size bound; the decoded buffer and the PEM text are both held whole.
 
 ## Code
 - `lib/src/pem.dart` — `Pem.normalizeToDer`, `Pem.decodePem`, `Pem.encodePem`.
-- `lib/src/x509_cert_store.dart` — `X509CertStore.addCertificate` (the `base64.decode`, empty and `null` checks).
+- `lib/src/x509_cert_store.dart` — `X509CertStore.addCertificate` (the `base64.decode`, empty, `null` and `CertificateFields.parse` checks).
 
 ## Reference behaviour
 **None.**
@@ -34,8 +37,9 @@ Input: no size bound; the decoded buffer and the PEM text are both held whole.
 - [failure category parity](../invariant/failure-category-parity.md)
 
 ## Blast radius
-- [windows-store](windows-store.md) — receives pass-through bytes that were never checked as a certificate.
-- [macos-keychain](macos-keychain.md) — the same, and its own pre-parse decides `invalidFormat` there.
+- [windows-store](windows-store.md) — receives only DER that parses as a certificate.
+- [macos-keychain](macos-keychain.md) — the same; its own pre-parse is now defence in depth.
+- [certificate-fields](certificate-fields.md) — its `parse` decides which input reaches any backend.
 - [macos-trust](macos-trust.md) — `Pem.encodePem` writes the file `security` reads, and must round-trip through `normalizeToDer`.
 - [public-api](public-api.md) — the `invalidFormat` cases are part of the documented contract.
 
