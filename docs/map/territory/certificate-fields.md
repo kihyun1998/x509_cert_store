@@ -15,9 +15,16 @@ From the source:
   malformed certificates are expected input. They reject indefinite length,
   high-tag-number form, lengths over 4 octets, and any element that overruns
   its buffer or parent.
-- `CertificateFields.parse` walks only to `validity`; subject, extensions and
-  signature are never read. `version` is optional and shifts the field
-  indices by one when present.
+- `CertificateFields.parse` checks the identifier octet of every element of
+  `Certificate` and `TBSCertificate` — the three top-level elements, the six
+  required fields, `[1]`/`[2]`/`[3]` only in that order, and two time values
+  in `validity` — and reads the content of serial, issuer and `notBefore`
+  only. `version` is optional and shifts the field indices by one when
+  present. Bytes after the `Certificate` element are ignored, because macOS
+  and Windows both accept them (measured with 3 trailing bytes, #37,
+  2026-10-24).
+- Every certificate in this Mac's `SystemRootCertificates.keychain` (158) and
+  login keychain (8) parses (2026-10-24).
 - Identity is (issuer, serial): the issuer's full DER encoding and the serial
   INTEGER's content octets, compared byte for byte
   (`CertificateFields.hasSameIdentityAs`). It is not RFC name-normalized;

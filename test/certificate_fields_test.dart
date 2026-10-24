@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:test/test.dart';
 import 'package:x509_cert_store/src/asn1/certificate_fields.dart';
+import 'package:x509_cert_store/src/asn1/der.dart';
 
 import 'fixtures/test_certificates.dart';
 
@@ -71,6 +72,24 @@ void main() {
       expect(CertificateFields.parse(overrun), isNull);
     });
 
+    test('a notAfter that is not a time', () {
+      final bytes = Uint8List.fromList(certificateOne);
+      final validity = _tbsFields(bytes)[4];
+      final notAfter = Der.childrenOf(bytes, validity)![1];
+      bytes[notAfter.start] = 0x04;
+      expect(CertificateFields.parse(bytes), isNull);
+    });
+
+    test('a TBSCertificate field after extensions', () {
+      // Re-tag extensions [3] (0xA3) as [4] (0xA4), a field X.509 does not
+      // define.
+      final bytes = Uint8List.fromList(certificateOne);
+      final extensions = _tbsFields(bytes).last;
+      expect(bytes[extensions.start], 0xA3);
+      bytes[extensions.start] = 0xA4;
+      expect(CertificateFields.parse(bytes), isNull);
+    });
+
     test('an indefinite-length SEQUENCE, which DER forbids', () {
       final indefinite = Uint8List.fromList([0x30, 0x80, 0x00, 0x00]);
       expect(CertificateFields.parse(indefinite), isNull);
@@ -114,4 +133,9 @@ void main() {
       expect(one.hasSameIdentityAs(renewed), isTrue);
     });
   });
+}
+
+List<DerElement> _tbsFields(Uint8List der) {
+  final top = Der.childrenOf(der, Der.read(der, 0)!)!;
+  return Der.childrenOf(der, top.first)!;
 }

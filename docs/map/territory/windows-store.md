@@ -27,8 +27,15 @@ From the source:
   wincrypt unchanged. `setTrusted` is ignored.
 - Mapping (`_categoryFromWinError`): `CRYPT_E_EXISTS` → `alreadyExist`,
   `ERROR_CANCELLED` → `canceled`, `ERROR_ACCESS_DENIED` → `accessDenied`,
-  anything else → `unknown` with `nativeCode`. Nothing maps to
-  `invalidFormat`.
+  the `CRYPT_E_ASN1_*` values in `cryptEAsn1MalformedInput` → `invalidFormat`,
+  anything else → `unknown` with `nativeCode`. The list is the ASN.1 codes
+  whose `winerror.h` message (Windows Kits 10.0.26100.0, read on the CI
+  runner, 2026-10-24) describes malformed input; `ERROR` (the base),
+  `INTERNAL`, `MEMORY`, `OVERFLOW`, `BADPDU`, `BADARGS`, `PDU_TYPE`, `NYI` and
+  `EXTENDED` ("skipped unknown extension(s)") describe the call, not the
+  input, and stay `unknown`. A fixture with a broken SPKI, signatureAlgorithm
+  or signatureValue tag fails `CertCreateCertificateContext` with
+  `CRYPT_E_ASN1_BADTAG`; a broken subject tag is accepted by it (#37).
 
 Input: the DER is copied whole into a native buffer; no size bound.
 
@@ -49,5 +56,5 @@ Input: the DER is copied whole into a native buffer; no size bound.
 - [public-api](public-api.md) — the categories reported here are the documented contract.
 
 ## Known holes / open
-- DER that `CertificateFields.parse` accepts but `CertCreateCertificateContext` rejects returns `unknown`; macOS returns `invalidFormat` — see [failure category parity](../invariant/failure-category-parity.md).
+- What `CertCreateCertificateContext` rejects for reasons beyond structure (content of a field, an algorithm) is unmeasured; a code outside `cryptEAsn1MalformedInput` would still be `unknown` — see [failure category parity](../invariant/failure-category-parity.md).
 - `addNewer` with a same-age or newer incumbent returns `alreadyExist`; macOS returns success. Undecided (maintainer, 2026-10-23) — see [wincrypt disposition parity](../invariant/wincrypt-disposition-parity.md).

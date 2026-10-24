@@ -14,7 +14,9 @@ From the source and ADR-0002:
   platform mapping.
 - `test/failure_category_parity_test.dart` drives `failureFromWinError` and
   `failureFromOSStatus` (`@visibleForTesting`) from one table of conditions on
-  every host, and fails while a category is neither in the table nor exempted.
+  every host, fails while a category other than `unknown` has no row, and
+  checks each Windows `CRYPT_E_ASN1_*` value against the input/non-input
+  split.
 - `test/windows_ffi_symbols_test.dart` and `test/macos_ffi_symbols_test.dart`
   (`@TestOn`) resolve every binding. Windows iterates `windowsBindings` (see
   [windows-store](windows-store.md)) and calls `GetLastError`; macOS lists its

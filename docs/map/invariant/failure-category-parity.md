@@ -31,14 +31,17 @@ certificate came back `invalidFormat` on macOS and `unknown` with the raw
 ASN.1 code on Windows. `X509CertStore.addCertificate` now rejects them with
 `CertificateFields.parse` before either backend runs.
 
-**Still open:** DER that `CertificateFields.parse` accepts — it walks only as
-far as `validity` — but the platform rejects. macOS reports `invalidFormat`
-(`secCertificateCreateWithData` returns null); Windows reports the unmapped
-`CertCreateCertificateContext` error as `unknown`. Tracked: #37.
+**Closed in 3.0.1 (#37):** DER that `CertificateFields.parse` accepted
+because it walked only as far as `validity`. With a broken SPKI,
+signatureAlgorithm or signatureValue tag, both platforms rejected it, macOS as
+`invalidFormat` and Windows as `CRYPT_E_ASN1_BADTAG` → `unknown`; with a broken
+subject tag, macOS rejected it and Windows added it. `parse` now checks the
+whole structure, and Windows maps the malformed-input ASN.1 codes to
+`invalidFormat` (maintainer's choice of both, 2026-10-24, over a mapping alone
+and over every context failure as `invalidFormat`).
 
-`invalidFormat` is the one category with a native code on one platform only
-(`errSecDecode`); the parity test lists it as rejected above the seam rather
-than mapping a Windows ASN.1 code (maintainer, 2026-10-24).
+**Still open:** a certificate that is structurally whole but that one platform
+rejects for its content. Not measured on either side.
 
 The `addNewer` same-age case is the same symptom from the other invariant:
 [wincrypt disposition parity](wincrypt-disposition-parity.md).
@@ -51,7 +54,7 @@ The `addNewer` same-age case is the same symptom from the other invariant:
 
 ## Where it will recur
 Add the condition to `conditions` in `test/failure_category_parity_test.dart`;
-the test fails while a category has neither a row nor an exemption.
+the test fails while a category other than `unknown` has no row.
 
 A new native error code mapped on one platform, a new `X509ErrorCode` value,
 or a new early return in either backend is subject to this: find the

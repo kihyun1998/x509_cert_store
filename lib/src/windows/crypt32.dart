@@ -102,3 +102,19 @@ const int certEncodingTypes = x509AsnEncoding | pkcs7AsnEncoding;
 const int cryptEExists = 0x80092005; // 2148081669
 const int errorCancelled = 1223;
 const int errorAccessDenied = 5;
+
+/// The `CRYPT_E_ASN1_*` values whose `winerror.h` message describes malformed
+/// input: `EOD`, `CORRUPT`, `LARGE`, `CONSTRAINT`, `BADREAL`, `BADTAG`,
+/// `CHOICE`, `RULE`, `UTF8`, `NOEOD`.
+const Set<int> cryptEAsn1MalformedInput = {
+  0x80093102,
+  0x80093103,
+  0x80093104,
+  0x80093105,
+  0x8009310A,
+  0x8009310B,
+  0x8009310C,
+  0x8009310D,
+  0x8009310E,
+  0x80093202,
+};

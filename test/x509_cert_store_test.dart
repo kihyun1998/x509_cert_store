@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:test/test.dart';
+import 'package:x509_cert_store/src/asn1/der.dart';
 import 'package:x509_cert_store/src/backend.dart';
 import 'package:x509_cert_store/src/pem.dart';
 import 'package:x509_cert_store/x509_cert_store.dart';
@@ -107,6 +108,13 @@ void main() {
         0x30, 0x82, 0xFF, 0xFF, //
       ],
       'an indefinite-length SEQUENCE': [0x30, 0x80, 0x00, 0x00],
+      'a subject that is not a SEQUENCE': _retag(certificateDer, tbs: 5),
+      'a subjectPublicKeyInfo that is not a SEQUENCE':
+          _retag(certificateDer, tbs: 6),
+      'a signatureAlgorithm that is not a SEQUENCE':
+          _retag(certificateDer, top: 1),
+      'a signatureValue that is not a BIT STRING':
+          _retag(certificateDer, top: 2),
     };
 
     for (final MapEntry(key: name, value: der) in cases.entries) {
@@ -123,6 +131,15 @@ void main() {
         expect(backend.callCount, 0);
       });
     }
+
+    test('bytes after the certificate are ignored, as both platforms do',
+        () async {
+      final trailing = [...certificateDer, 0x00, 0x00, 0x00];
+      final (result, backend) = await addDer(trailing);
+
+      expect(result, isA<X509Success>());
+      expect(backend.lastDer, trailing);
+    });
 
     test('a v1 certificate, with no version field, reaches the backend',
         () async {
@@ -264,4 +281,16 @@ void main() {
 
     expect((result as X509Failure).code, X509ErrorCode.unknown);
   });
+}
+
+/// [der] with the identifier octet of one element replaced by `0x04` (OCTET
+/// STRING): a direct child of the `Certificate` when [top] is given, or of
+/// the `TBSCertificate` when [tbs] is.
+List<int> _retag(List<int> der, {int? top, int? tbs}) {
+  final bytes = Uint8List.fromList(der);
+  final children = Der.childrenOf(bytes, Der.read(bytes, 0)!)!;
+  final element = tbs == null
+      ? children[top!]
+      : Der.childrenOf(bytes, children.first)![tbs];
+  return bytes..[element.start] = 0x04;
 }
