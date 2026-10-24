@@ -45,7 +45,7 @@ Input: the DER is copied whole into a native buffer; no size bound.
 
 ## Blast radius
 - [macos-keychain](macos-keychain.md) — it imitates this platform's disposition outcomes and must categorize the same failures the same way.
-- [verification](verification.md) — `test/windows_ffi_symbols_test.dart` lists the same bindings by hand; a new one is unproven until it is added there.
+- [verification](verification.md) — `test/windows_ffi_symbols_test.dart` iterates `windowsBindings`, and `test/failure_category_parity_test.dart` calls `failureFromWinError`.
 - [public-api](public-api.md) — the categories reported here are the documented contract.
 
 ## Known holes / open

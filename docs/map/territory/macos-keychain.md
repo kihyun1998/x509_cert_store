@@ -15,8 +15,9 @@ From the source:
   because the add can raise an authorization prompt.
 - Input is rejected as `invalidFormat` twice before any keychain call: by
   `CertificateFields.parse`, then by `secCertificateCreateWithData` returning
-  null. The public API already ran the same `parse`, so the first is defence
-  in depth.
+  null. The public API already ran the same `parse` (see
+  [input-normalization](input-normalization.md)), so the first is defence in
+  depth.
 - The incumbent is found by `_findByIdentity`: every certificate
   `SecItemCopyMatching` returns (`kSecMatchLimitAll`, no keychain
   restriction) is copied out and parsed, and the first (issuer, serial) match
@@ -49,6 +50,7 @@ each add, copying and parsing each one; nothing bounds that count.
 - [failure category parity](../invariant/failure-category-parity.md)
 
 ## Blast radius
+- [input-normalization](input-normalization.md) — the input reaching this backend has already passed `CertificateFields.parse`.
 - [certificate-fields](certificate-fields.md) — identity and `notBefore` come from there; a parse change changes which branch runs.
 - [macos-trust](macos-trust.md) — it runs only after this returns `X509Success`, against the certificate just added.
 - [windows-store](windows-store.md) — the outcome of every disposition, and every category, has to match.
@@ -59,3 +61,4 @@ each add, copying and parsing each one; nothing bounds that count.
 - `todo.md` (2025-08-28, before 3.0.0) records that `replace` does not add when the certificate is in root and not in my. Its platform and whether it still reproduces are unknown (maintainer, 2026-10-23). A candidate here: the incumbent search spans every keychain, the add targets the default one.
 - `errSecItemNotFound` is declared and never read; other `SecItemCopyMatching` failures are also read as "none found".
 - No bound on the number of keychain certificates parsed per add.
+- `_addCertificate` and `_deleteCertificate` return `errSecDecode` when `_createDictionary` returns null, so an allocation failure is reported as `invalidFormat`. Tracked: #38.

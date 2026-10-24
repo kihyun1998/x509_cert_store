@@ -14,6 +14,11 @@ From the source:
   `publish_to: "none"`.
 - `_CertificateManagerPageState._handleCertificateResult` switches over
   `X509Result` and names some `X509ErrorCode` values, with a `_` fallback.
+- `_CertificateManagerPageState._loadCertificateFromFile` picks a file with
+  `FilePicker.pickFile` and reads it with `PlatformFile.readAsBytes`
+  (`file_picker` ^13). `file_picker` 12 removed `FilePickerResult` and
+  `FilePicker.platform`, which broke the example build when Dependabot raised
+  the group (commit e013029, 2026-10-23).
 - The macOS entitlements disable the App Sandbox and enable keychain access
   (`example/macos/Runner/*.entitlements`), the setup the README tells
   consumers to copy.
@@ -24,7 +29,7 @@ From the source:
   `--no-example`.
 
 ## Code
-- `example/lib/main.dart` — `MyApp`, `CertificateManagerPage`, `_CertificateManagerPageState._addCertificate`, `_CertificateManagerPageState._handleCertificateResult`.
+- `example/lib/main.dart` — `MyApp`, `CertificateManagerPage`, `_CertificateManagerPageState._addCertificate`, `_CertificateManagerPageState._loadCertificateFromFile`, `_CertificateManagerPageState._handleCertificateResult`.
 - `example/integration_test/plugin_integration_test.dart`.
 - `example/windows/runner/`, `example/macos/Runner/`.
 

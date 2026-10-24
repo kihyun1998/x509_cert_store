@@ -7,10 +7,12 @@ macOS, and `X509Failure.nativeCode` is set only when the category is
 
 ## Why it is cross-cutting
 Each platform backend maps its own native error type — a Win32 `DWORD`, an
-`OSStatus` — in its own private function, and the two never call each other.
-The README promises consumers one portable category per failure; nothing but
-this note keeps the two mapping tables, and each backend's early-return
-failures, describing the same conditions.
+`OSStatus` — in its own function, and the two never call each other. The
+README promises consumers one portable category per failure.
+`test/failure_category_parity_test.dart` holds the two mapping tables to one
+list of conditions; nothing but this note keeps each backend's early-return
+failures, and what each platform's parser rejects, describing the same
+conditions.
 
 ## Territories it holds in
 - [windows-store](../territory/windows-store.md) — `windows_cert_store.dart — failureFromWinError`, `_categoryFromWinError`.
@@ -32,7 +34,7 @@ ASN.1 code on Windows. `X509CertStore.addCertificate` now rejects them with
 **Still open:** DER that `CertificateFields.parse` accepts — it walks only as
 far as `validity` — but the platform rejects. macOS reports `invalidFormat`
 (`secCertificateCreateWithData` returns null); Windows reports the unmapped
-`CertCreateCertificateContext` error as `unknown`.
+`CertCreateCertificateContext` error as `unknown`. Tracked: #37.
 
 `invalidFormat` is the one category with a native code on one platform only
 (`errSecDecode`); the parity test lists it as rejected above the seam rather
