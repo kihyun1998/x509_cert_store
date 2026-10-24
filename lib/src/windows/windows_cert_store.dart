@@ -3,6 +3,7 @@ import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:ffi/ffi.dart';
+import 'package:meta/meta.dart';
 
 import '../backend.dart';
 import '../x509_res_result.dart';
@@ -61,14 +62,14 @@ X509Result _addCertificateSync(String storeName, Uint8List der, int addType) {
     store = certOpenSystemStoreA(nullptr, storeNamePtr);
     if (store == nullptr) {
       final error = getLastError();
-      return _failure('Failed to open certificate store', error);
+      return failureFromWinError('Failed to open certificate store', error);
     }
 
     certContext =
         certCreateCertificateContext(certEncodingTypes, certBuffer, der.length);
     if (certContext == nullptr) {
       final error = getLastError();
-      return _failure('Failed to create certificate context', error);
+      return failureFromWinError('Failed to create certificate context', error);
     }
 
     final added = certAddCertificateContextToStore(
@@ -79,7 +80,7 @@ X509Result _addCertificateSync(String storeName, Uint8List der, int addType) {
     );
     if (added == 0) {
       final error = getLastError();
-      return _failure('Failed to add certificate to store', error);
+      return failureFromWinError('Failed to add certificate to store', error);
     }
 
     return const X509Success();
@@ -96,7 +97,8 @@ X509Result _addCertificateSync(String storeName, Uint8List der, int addType) {
 /// `nativeCode` is populated only for the `unknown` category: a caller that
 /// matched a category already has the portable answer, and the raw value is
 /// only useful for diagnosing codes this mapping does not cover.
-X509Failure _failure(String message, int winError) {
+@visibleForTesting
+X509Failure failureFromWinError(String message, int winError) {
   final category = _categoryFromWinError(winError);
   return X509Failure(
     code: category,

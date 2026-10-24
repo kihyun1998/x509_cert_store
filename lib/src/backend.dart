@@ -10,8 +10,9 @@ import 'x509_store_enums.dart' show X509AddType, X509ErrorCode, X509StoreName;
 ///
 /// FFI bindings cannot be mocked the way a method channel could, so the
 /// platform work sits behind this interface and tests substitute a fake.
-/// Input normalization (base64, PEM/DER) happens above the seam, so a backend
-/// always receives DER bytes.
+/// Input normalization (base64, PEM/DER) and the certificate structure check
+/// happen above the seam, so a backend always receives DER bytes that parse as
+/// a certificate.
 abstract interface class X509CertStoreBackend {
   Future<X509Result> addCertificate({
     required X509StoreName storeName,

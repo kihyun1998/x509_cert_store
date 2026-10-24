@@ -10,10 +10,15 @@ per-platform FFI symbol tests, and the three CI jobs that run them.
 ## Design model
 From the source and ADR-0002:
 - `test/x509_cert_store_test.dart` drives `X509CertStore.withBackend` with a
-  fake; it proves normalization and pass-through, never a platform mapping.
+  fake; it proves normalization, the structure check and pass-through, never a
+  platform mapping.
+- `test/failure_category_parity_test.dart` drives `failureFromWinError` and
+  `failureFromOSStatus` (`@visibleForTesting`) from one table of conditions on
+  every host, and fails while a category is neither in the table nor exempted.
 - `test/windows_ffi_symbols_test.dart` and `test/macos_ffi_symbols_test.dart`
-  (`@TestOn`) resolve every binding by hand-written list; Windows also calls
-  `GetLastError`. A missing symbol is otherwise a runtime failure on a user's
+  (`@TestOn`) resolve every binding; Windows iterates `windowsBindings`, the
+  list `ensureBindingsResolved` also reads, and calls `GetLastError`; macOS
+  still lists its bindings by hand. A missing symbol is otherwise a runtime failure on a user's
   machine.
 - `test/pem_test.dart` and `test/certificate_fields_test.dart` exercise pure
   Dart on any host, against `test/fixtures/test_certificates.dart`.
@@ -43,6 +48,5 @@ From the source and ADR-0002:
 - [example-app](example-app.md) — the desktop jobs build it, so a public API break fails there too.
 
 ## Known holes / open
-- `_categoryFromWinError` and `_categoryFromOSStatus` are private and called by no test.
 - No test reaches a certificate store; `example/integration_test/` is run by no CI job (ADR-0002).
 - [macos-trust](macos-trust.md) is untested.

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:meta/meta.dart';
 
+import 'asn1/certificate_fields.dart';
 import 'backend.dart';
 import 'pem.dart';
 import 'x509_res_result.dart';
@@ -72,9 +73,10 @@ class X509CertStore {
     required X509AddType addType,
     bool setTrusted = false,
   }) async {
-    // Decoding and PEM normalization happen above the platform seam, so the
-    // two invalid-input paths below behave identically on every platform and
-    // are unit-testable without touching the certificate store.
+    // Decoding, PEM normalization and the certificate structure check happen
+    // above the platform seam, so every invalid-input path below behaves
+    // identically on every platform and is unit-testable without touching the
+    // certificate store.
     final Uint8List decoded;
     try {
       decoded = base64.decode(certificateBase64);
@@ -97,6 +99,13 @@ class X509CertStore {
       return const X509Failure(
         code: X509ErrorCode.invalidFormat,
         msg: 'Failed to convert PEM to DER format',
+      );
+    }
+
+    if (CertificateFields.parse(der) == null) {
+      return const X509Failure(
+        code: X509ErrorCode.invalidFormat,
+        msg: 'Invalid certificate data',
       );
     }
 

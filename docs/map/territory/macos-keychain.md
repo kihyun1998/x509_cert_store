@@ -15,7 +15,8 @@ From the source:
   because the add can raise an authorization prompt.
 - Input is rejected as `invalidFormat` twice before any keychain call: by
   `CertificateFields.parse`, then by `secCertificateCreateWithData` returning
-  null.
+  null. The public API already ran the same `parse`, so the first is defence
+  in depth.
 - The incumbent is found by `_findByIdentity`: every certificate
   `SecItemCopyMatching` returns (`kSecMatchLimitAll`, no keychain
   restriction) is copied out and parsed, and the first (issuer, serial) match
@@ -36,7 +37,7 @@ Input: `_findByIdentity` walks every certificate in the keychain search list on
 each add, copying and parsing each one; nothing bounds that count.
 
 ## Code
-- `lib/src/macos/macos_cert_store.dart` — `MacOsCertStore.addCertificate`, `_addCertificateSync`, `_certStoreAddNew`, `_certStoreAddReplaceExisting`, `_certStoreAddNewer`, `_createCertificate`, `_findByIdentity`, `_fieldsOf`, `_addCertificate`, `_deleteCertificate`, `_createDictionary`, `_failure`, `_categoryFromOSStatus`.
+- `lib/src/macos/macos_cert_store.dart` — `MacOsCertStore.addCertificate`, `_addCertificateSync`, `_certStoreAddNew`, `_certStoreAddReplaceExisting`, `_certStoreAddNewer`, `_createCertificate`, `_findByIdentity`, `_fieldsOf`, `_addCertificate`, `_deleteCertificate`, `_createDictionary`, `failureFromOSStatus`, `_categoryFromOSStatus`.
 - `lib/src/macos/security.dart` — `secCertificateCreateWithData`, `secCertificateCopyData`, `secItemAdd`, `secItemCopyMatching`, `secItemDelete`, the `kSec*` constants, the `errSec*` values.
 - `lib/src/macos/core_foundation.dart` — `cfConstant`, `cfRelease`, `cfRetain`, `cfDataCreate`, `cfDictionaryCreate`, `cfArrayGetCount`, `cfArrayGetValueAtIndex`, `kCFTypeDictionaryKeyCallBacks`, `kCFBooleanTrue`.
 

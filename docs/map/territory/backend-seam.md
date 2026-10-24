@@ -10,8 +10,8 @@ backend** runs, what it receives, and how tests substitute one.
 
 ## Design model
 From the source and ADR-0001's amendment:
-- `X509CertStoreBackend.addCertificate` always receives DER; decoding happens
-  above it.
+- `X509CertStoreBackend.addCertificate` always receives DER that
+  `CertificateFields.parse` accepts; decoding and that check happen above it.
 - `createPlatformBackend` picks `WindowsCertStore` or `MacOsCertStore` from
   `Platform`, and `UnsupportedBackend` for any other OS. Unsupported returns
   `unknown` rather than throwing.

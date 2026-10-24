@@ -32,3 +32,17 @@ const List<int> certificateTwoSerial = [0x0F, 0xED, 0xCB, 0xA9, 0x87];
 
 /// The `notBefore` both fixtures carry.
 final DateTime certificateNotBefore = DateTime.utc(2026, 9, 3, 6, 20, 53);
+
+/// A v1 certificate: its `TBSCertificate` carries no `[0] version` field.
+///
+/// OpenSSL 3 always writes v3, so this one comes from LibreSSL, which writes
+/// v1 when no extensions are requested:
+///
+/// ```
+/// /usr/bin/openssl x509 -req -in r.csr -signkey k.pem -days 3650 \
+///   -set_serial 0x0A0B0C -sha256 -out v1.pem
+/// ```
+///
+/// Serial `0x0A0B0C`, subject `/CN=x509 cert store v1 test/O=x509 cert store`.
+const String certificateV1Base64 =
+    'MIIC7jCCAdYCAwoLDDANBgkqhkiG9w0BAQsFADA8MSAwHgYDVQQDDBd4NTA5IGNlcnQgc3RvcmUgdjEgdGVzdDEYMBYGA1UECgwPeDUwOSBjZXJ0IHN0b3JlMB4XDTI2MTAyNDA0MjczOFoXDTM2MTAyMTA0MjczOFowPDEgMB4GA1UEAwwXeDUwOSBjZXJ0IHN0b3JlIHYxIHRlc3QxGDAWBgNVBAoMD3g1MDkgY2VydCBzdG9yZTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAJ8fnm0RzwQVev/B/AkhX+QXk3mniKWZK1LkH6Qap25biFmtCObbD9/kyxgqL66EYncDEx6I1g5GHK58R5SnzdQXVyQZOeJ+bq66Hp1/EqcVb6AdEskuRcYm+cxKkD1HxEMfx8R1Dp9kbYWIOdJo3E/RO8PixwPTO1eCxy/uMtZrib/iMyRiMdcXqptiDIYL6/TTfO3oNN8AQHlUM2/9hiK7QQudBd6TCT3TTwjneqdSh+Y6vWhsQaOGHi2Xu02NIfR581d+J0m5AwDxOCTwySjVIZ8EYq+rmIAVHHqAtnGIIH+2PX6/91rrVqrQ6KAa3io9Rap2zypOfuKvwJSkzJkCAwEAATANBgkqhkiG9w0BAQsFAAOCAQEAIZFL2ka1Ex3wztcHj0CrqN+jSU7SZIsE4ec7zOrIQRvIBHxOixPN3YpwNIiP3O3onebptSOUpEQAakZp0J9R7djX9B6YPMZ9cpnWGB0xX4xDaP82N9q7NsosZZVuDjoychmTDLQH0TAgP+bfNW3WuFm1sEz+/v0wcEDjR/LTnClhsj2fe4NH7fzlVZO/7wJ7qvYQtxb9cNM/54HqvGoF6Of/deoozmFEvqc+IuQSQqVJfrHs1QNLBNd98bLoJgYqjjLJc4L9ktTAsOGRVHsRM6aduFTj9ZsyQ/2nVK8P5x3USbjVKbo2JNnThNzR2Vo0eDZnzP/lqqyFDljxRTOBnQ==';

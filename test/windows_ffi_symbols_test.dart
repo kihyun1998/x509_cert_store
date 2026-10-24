@@ -12,17 +12,14 @@ import 'package:x509_cert_store/x509_cert_store.dart';
 ///
 /// Under the previous C++ plugin a misspelled or missing API was a link
 /// error. With FFI it is a runtime `ArgumentError` on the user's machine, so
-/// the loads are pinned here instead. Reading the bindings is enough: each is
-/// a lazily-initialized top-level `final` that opens the library and performs
-/// the lookup on first access.
+/// the loads are pinned here instead. Reading [windowsBindings] is enough: each
+/// entry is a lazily-initialized top-level `final` that opens the library and
+/// performs the lookup on first access.
 void main() {
   test('crypt32 and kernel32 symbols resolve', () {
-    expect(certOpenSystemStoreA, isNotNull);
-    expect(certCreateCertificateContext, isNotNull);
-    expect(certAddCertificateContextToStore, isNotNull);
-    expect(certFreeCertificateContext, isNotNull);
-    expect(certCloseStore, isNotNull);
-    expect(getLastError, isNotNull);
+    for (final binding in windowsBindings) {
+      expect(binding, isNotNull);
+    }
   });
 
   test('GetLastError is callable and returns a DWORD', () {

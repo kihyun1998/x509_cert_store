@@ -39,6 +39,7 @@ Input: bounded by the buffer — every length is checked against it before use.
 
 ## Blast radius
 - [macos-keychain](macos-keychain.md) — identity and `notBefore` decide which disposition branch runs, and `parse` returning `null` is its `invalidFormat`.
+- [input-normalization](input-normalization.md) — `X509CertStore.addCertificate` refuses whatever `parse` refuses, on every platform.
 - [verification](verification.md) — `test/certificate_fields_test.dart` is the only place this logic is exercised on every host.
 
 ## Known holes / open

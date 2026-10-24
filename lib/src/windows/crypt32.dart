@@ -54,8 +54,20 @@ final int Function(Pointer<Void>, int) certCloseStore = _crypt32.lookupFunction<
 final int Function() getLastError =
     _kernel32.lookupFunction<Uint32 Function(), int Function()>('GetLastError');
 
-/// Forces every binding above to resolve, before any of them is called for
-/// real. Call this once at the start of a store operation.
+/// Every binding above. [ensureBindingsResolved] resolves this list before a
+/// store operation, and the Windows symbol test resolves it on CI, so a new
+/// binding is added here and nowhere else.
+final List<Function> windowsBindings = [
+  certOpenSystemStoreA,
+  certCreateCertificateContext,
+  certAddCertificateContextToStore,
+  certFreeCertificateContext,
+  certCloseStore,
+  getLastError,
+];
+
+/// Forces every binding in [windowsBindings] to resolve, before any of them is
+/// called for real. Call this once at the start of a store operation.
 ///
 /// wincrypt reports failures through the thread-local Win32 last-error value.
 /// Dart initializes top-level `final`s lazily and gives each isolate its own
@@ -74,15 +86,8 @@ final int Function() getLastError =
 /// macOS needs no equivalent: `OSStatus` is a return value rather than
 /// thread-local state, so nothing can overwrite it in between.
 void ensureBindingsResolved() {
-  final bindings = <Function>[
-    certOpenSystemStoreA,
-    certCreateCertificateContext,
-    certAddCertificateContextToStore,
-    certFreeCertificateContext,
-    certCloseStore,
-    getLastError,
-  ];
-  assert(bindings.length == 6);
+  // Reading the list initializes every binding in it.
+  windowsBindings.length;
   // Discard whatever the loader left in the last-error slot.
   getLastError();
 }
