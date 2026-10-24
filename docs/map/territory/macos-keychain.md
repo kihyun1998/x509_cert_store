@@ -30,6 +30,11 @@ From the source:
   the default keychain (the `MacOsCertStore` doc-comment; README "Platform-specific Behavior").
 - Lifetimes: a candidate is `cfRetain`ed before its `CFArray` is released;
   every CF object is released on all paths.
+- A CoreFoundation allocation that returns NULL (`_createData`,
+  `_createDictionary`, through `_allocated`) throws a `StateError`, as
+  `calloc` does; it leaves `Isolate.run` and becomes `unknown` with no
+  `nativeCode` in `X509CertStore.addCertificate`'s `catch`, the category a
+  failed allocation gets on Windows (#38).
 - Mapping (`_categoryFromOSStatus`): `errSecDuplicateItem` → `alreadyExist`,
   `errSecUserCanceled` → `canceled`, `errSecAuthFailed` → `accessDenied`,
   `errSecDecode` → `invalidFormat`, else `unknown` with `nativeCode`.
@@ -38,7 +43,7 @@ Input: `_findByIdentity` walks every certificate in the keychain search list on
 each add, copying and parsing each one; nothing bounds that count.
 
 ## Code
-- `lib/src/macos/macos_cert_store.dart` — `MacOsCertStore.addCertificate`, `_addCertificateSync`, `_certStoreAddNew`, `_certStoreAddReplaceExisting`, `_certStoreAddNewer`, `_createCertificate`, `_findByIdentity`, `_fieldsOf`, `_addCertificate`, `_deleteCertificate`, `_createDictionary`, `failureFromOSStatus`, `_categoryFromOSStatus`.
+- `lib/src/macos/macos_cert_store.dart` — `MacOsCertStore.addCertificate`, `_addCertificateSync`, `_certStoreAddNew`, `_certStoreAddReplaceExisting`, `_certStoreAddNewer`, `_createCertificate`, `_findByIdentity`, `_fieldsOf`, `_addCertificate`, `_deleteCertificate`, `_createDictionary`, `_allocated`, `failureFromOSStatus`, `_categoryFromOSStatus`.
 - `lib/src/macos/security.dart` — `secCertificateCreateWithData`, `secCertificateCopyData`, `secItemAdd`, `secItemCopyMatching`, `secItemDelete`, the `kSec*` constants, the `errSec*` values.
 - `lib/src/macos/core_foundation.dart` — `cfConstant`, `cfRelease`, `cfRetain`, `cfDataCreate`, `cfDictionaryCreate`, `cfArrayGetCount`, `cfArrayGetValueAtIndex`, `kCFTypeDictionaryKeyCallBacks`, `kCFBooleanTrue`.
 
@@ -61,4 +66,3 @@ each add, copying and parsing each one; nothing bounds that count.
 - `todo.md` (2025-08-28, before 3.0.0) records that `replace` does not add when the certificate is in root and not in my. Its platform and whether it still reproduces are unknown (maintainer, 2026-10-23). A candidate here: the incumbent search spans every keychain, the add targets the default one.
 - `errSecItemNotFound` is declared and never read; other `SecItemCopyMatching` failures are also read as "none found".
 - No bound on the number of keychain certificates parsed per add.
-- `_addCertificate` and `_deleteCertificate` return `errSecDecode` when `_createDictionary` returns null, so an allocation failure is reported as `invalidFormat`. Tracked: #38.
