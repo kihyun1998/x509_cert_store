@@ -49,7 +49,7 @@ X509Result _addCertificateSync(String storeName, Uint8List der, int addType) {
   // Resolve every binding before the first real call, so no lazy
   // LoadLibrary/GetProcAddress can land between a failure and the
   // GetLastError that reports it. See ensureBindingsResolved.
-  ensureBindingsResolved();
+  // TEMP: removed to redden the last-error test (#43)
 
   final storeNamePtr = storeName.toNativeUtf8();
   final certBuffer = calloc<Uint8>(der.length);
