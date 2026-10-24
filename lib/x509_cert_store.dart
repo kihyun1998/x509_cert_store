@@ -1,8 +1,8 @@
-/// A Flutter plugin for managing X.509 certificates in platform certificate stores.
+/// A Dart package for adding X.509 certificates to platform certificate stores.
 ///
-/// This plugin provides a cross-platform API for adding X.509 certificates
-/// to the operating system's certificate stores with support for different
-/// certificate stores and addition behaviors.
+/// It reaches the Windows and macOS stores over `dart:ffi`, with no Flutter
+/// dependency, and provides a cross-platform API for adding X.509 certificates
+/// with support for different certificate stores and addition behaviors.
 ///
 /// ## Quick Start
 ///

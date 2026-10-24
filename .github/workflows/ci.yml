@@ -24,6 +24,22 @@ jobs:
       - run: dart format --output=none --set-exit-if-changed .
       - run: dart analyze lib test
       - run: dart test
+      # Fails when the package would publish a root *.md other than
+      # README.md, CHANGELOG.md and MIGRATION.md, naming each one.
+      - name: Check published root documents
+        run: |
+          out=$(dart pub publish --dry-run 2>&1) || true
+          if ! grep -q '^Publishing x509_cert_store' <<<"$out"; then
+            echo "$out"
+            echo "::error::dart pub publish --dry-run listed no package"
+            exit 1
+          fi
+          extra=$(sed -nE "s/^(├──|└──|\|--|'--) ([^ ]+\.md) \(.*$/\2/p" <<<"$out" \
+            | grep -vxE 'README\.md|CHANGELOG\.md|MIGRATION\.md' || true)
+          if [ -n "$extra" ]; then
+            for f in $extra; do echo "::error::$f would be published to pub.dev"; done
+            exit 1
+          fi
 
   windows:
     name: Windows (FFI symbols + example build)

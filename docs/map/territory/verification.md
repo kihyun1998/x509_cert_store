@@ -18,7 +18,8 @@ From the source and ADR-0002:
 - `test/pem_test.dart` and `test/certificate_fields_test.dart` exercise pure
   Dart on any host, against `test/fixtures/test_certificates.dart`.
 - CI (`.github/workflows/ci.yml`): one job on a bare Dart SDK with no Flutter —
-  format, `dart analyze lib test`, `dart test` — which is what keeps the package
+  format, `dart analyze lib test`, `dart test`, and the published-root-documents
+  check (see [release](release.md)) — which is what keeps the package
   Dart-only; one Windows and one macOS job, each running `dart test` and then
   `flutter analyze` and `flutter build` on `example/`.
 - The macOS backend runs only on the macOS job; the Windows dev host cannot

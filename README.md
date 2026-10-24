@@ -162,7 +162,7 @@ On macOS, certificates are managed through Keychain Services:
 - The certificate itself is added to the user's **default keychain** for both store names. `X509StoreName` selects the *trust* mechanism, not the destination keychain
 - **Trust Settings**: When `setTrusted: true` is explicitly specified, the certificate is configured as trusted via `security add-trusted-cert` (default is `false`)
 - `X509StoreName.root` requests trust in the **admin domain**, elevating through `osascript`, so the user is prompted for an administrator password
-- `X509StoreName.my` requests trust as the current user, with no elevation
+- `X509StoreName.my` also requests trust in the **admin domain** (`add-trusted-cert -d`), but without elevating; per `security(1)`, changing admin trust settings requires running as root or administrator authentication
 - **Fallback Mechanism**: If elevation fails or is declined, the unelevated `security` invocation is attempted instead
 - Trust configuration is best effort: the certificate has already been added by that point, so a trust failure does not fail the operation
 - Duplicate detection compares certificate identity as (issuer, serial number), parsed from the certificate's DER

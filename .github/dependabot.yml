@@ -6,6 +6,8 @@ updates:
     schedule:
       interval: weekly
     versioning-strategy: increase-if-necessary
+    labels:
+      - needs-triage
   - package-ecosystem: pub
     directory: /example
     schedule:
@@ -13,6 +15,8 @@ updates:
     groups:
       example:
         patterns: ["*"]
+    labels:
+      - needs-triage
   - package-ecosystem: github-actions
     directory: /
     schedule:
@@ -20,3 +24,5 @@ updates:
     groups:
       actions:
         patterns: ["*"]
+    labels:
+      - needs-triage

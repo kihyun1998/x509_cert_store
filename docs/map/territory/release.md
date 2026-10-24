@@ -12,8 +12,13 @@ version.
 ## Design model
 - `pubspec.yaml` declares a plain Dart package: `ffi` and `meta` only, no
   Flutter, no plugin platforms. Checked: `pubspec.yaml`.
-- `.pubignore` excludes by name — agent docs, `docs/`, `openssl.md`, build
-  caches, `.claude/`. Checked: `.pubignore`.
+- `.pubignore` excludes by name — agent docs, `docs/`, `openssl.md`,
+  `todo.md`, build caches, `.claude/`. Checked: `.pubignore`.
+- CI's no-Flutter job reads `dart pub publish --dry-run` and fails on any
+  root `*.md` other than `README.md`, `CHANGELOG.md` and `MIGRATION.md`. It
+  reads what would ship rather than `.pubignore`, because W5 below was a list
+  that looked right (ADR-0003, #27). Seen failing on `todo.md` with its
+  exclusion removed (2026-10-23).
 - `README.md`, `CHANGELOG.md`, `MIGRATION.md`, `LICENSE` ship. Library
   doc-comments ship as the pub.dev API docs.
 - A published version renders the `CHANGELOG.md` in its own tarball, so a
@@ -44,6 +49,4 @@ version.
 - [verification](verification.md) — CI is the only check behind the Dart-only claim.
 
 ## Known holes / open
-- `todo.md` is tracked and not excluded by `.pubignore`, so it ships in the next publish — the W5 repeat ADR-0003's last row exists to prevent.
-- Nothing checks the built package against `.pubignore`.
-- Stale descriptions that ship or are read as identity: the barrel's "A Flutter plugin" (see [public-api](public-api.md)); `GLOSSARY.md`'s **Cross-platform store name**, still mapped "at the native layer".
+- `MIGRATION.md`'s 2.0.0 table still says the mapping "happens at the native layer"; a published migration guide is left as written.
