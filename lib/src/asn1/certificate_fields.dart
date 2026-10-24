@@ -4,10 +4,16 @@ import 'der.dart';
 
 /// ASN.1 identifier octets for the elements this parser walks.
 const int _tagInteger = 0x02;
+const int _tagBitString = 0x03;
 const int _tagUtcTime = 0x17;
 const int _tagGeneralizedTime = 0x18;
 const int _tagSequence = 0x30;
 const int _tagContext0 = 0xA0;
+
+/// The `TBSCertificate` fields that may follow `subjectPublicKeyInfo`, in the
+/// order X.509 defines them: `[1] issuerUniqueID`, `[2] subjectUniqueID`
+/// (both IMPLICIT BIT STRING) and `[3] extensions` (EXPLICIT).
+const List<int> _optionalTrailingTags = [0x81, 0x82, 0xA3];
 
 /// The three certificate fields the store operations need.
 ///
@@ -43,24 +49,34 @@ class CertificateFields {
 
   /// Parses [der], returning null when it is not a well-formed certificate.
   ///
-  /// Walks only as far as `validity`, so trailing structure (subject,
-  /// extensions, signature) is never inspected:
+  /// Checks the identifier octet of every element of this structure, and
+  /// reads issuer, serial number and `notBefore` from it:
   ///
-  ///     Certificate     ::= SEQUENCE { tbsCertificate, signatureAlgorithm,
-  ///                                    signatureValue }
+  ///     Certificate     ::= SEQUENCE { tbsCertificate SEQUENCE,
+  ///                                    signatureAlgorithm SEQUENCE,
+  ///                                    signatureValue BIT STRING }
   ///     TBSCertificate  ::= SEQUENCE { [0] version DEFAULT v1,
-  ///                                    serialNumber, signature, issuer,
-  ///                                    validity, subject, ... }
-  ///     Validity        ::= SEQUENCE { notBefore, notAfter }
+  ///                                    serialNumber INTEGER,
+  ///                                    signature SEQUENCE, issuer SEQUENCE,
+  ///                                    validity SEQUENCE, subject SEQUENCE,
+  ///                                    subjectPublicKeyInfo SEQUENCE,
+  ///                                    [1] OPTIONAL, [2] OPTIONAL,
+  ///                                    [3] extensions OPTIONAL }
+  ///     Validity        ::= SEQUENCE { notBefore Time, notAfter Time }
+  ///
+  /// The content of each element beyond those three fields is not inspected,
+  /// and bytes after the `Certificate` element are ignored.
   static CertificateFields? parse(Uint8List der) {
     final certificate = Der.read(der, 0);
     if (certificate == null || certificate.tag != _tagSequence) return null;
 
     final topLevel = Der.childrenOf(der, certificate);
-    if (topLevel == null || topLevel.isEmpty) return null;
+    if (topLevel == null || topLevel.length != 3) return null;
 
-    final tbs = topLevel.first;
+    final tbs = topLevel[0];
     if (tbs.tag != _tagSequence) return null;
+    if (topLevel[1].tag != _tagSequence) return null;
+    if (topLevel[2].tag != _tagBitString) return null;
 
     final fields = Der.childrenOf(der, tbs);
     if (fields == null) return null;
@@ -69,18 +85,32 @@ class CertificateFields {
     // v1 certificates. Everything after it shifts by one when it is present.
     final base =
         (fields.isNotEmpty && fields.first.tag == _tagContext0) ? 1 : 0;
-    // serialNumber, signature, issuer, validity.
-    if (fields.length < base + 4) return null;
+    // serialNumber, signature, issuer, validity, subject,
+    // subjectPublicKeyInfo.
+    if (fields.length < base + 6) return null;
 
     final serial = fields[base];
     final issuer = fields[base + 2];
     final validity = fields[base + 3];
     if (serial.tag != _tagInteger) return null;
-    if (issuer.tag != _tagSequence) return null;
-    if (validity.tag != _tagSequence) return null;
+    for (final element in fields.sublist(base + 1, base + 6)) {
+      if (element.tag != _tagSequence) return null;
+    }
+
+    var nextOptional = 0;
+    for (final element in fields.sublist(base + 6)) {
+      final position = _optionalTrailingTags.indexOf(element.tag, nextOptional);
+      if (position < 0) return null;
+      nextOptional = position + 1;
+    }
 
     final validityFields = Der.childrenOf(der, validity);
-    if (validityFields == null || validityFields.isEmpty) return null;
+    if (validityFields == null || validityFields.length != 2) return null;
+    for (final time in validityFields) {
+      if (time.tag != _tagUtcTime && time.tag != _tagGeneralizedTime) {
+        return null;
+      }
+    }
 
     final notBefore = _parseTime(der, validityFields.first);
     if (notBefore == null) return null;

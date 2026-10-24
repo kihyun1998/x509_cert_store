@@ -19,9 +19,10 @@ From the source:
   empty body and a non-base64 body all return `null`.
 - The DER is then required to parse with `CertificateFields.parse`; a `null`
   becomes `invalidFormat` with no backend call, so truncated, overrunning,
-  indefinite-length and 0x30-prefixed non-certificate input fail identically
-  everywhere. What `parse` accepts and the platform still rejects is the
-  backend's to categorize — see
+  indefinite-length, 0x30-prefixed and structurally broken certificates fail
+  identically everywhere (see [certificate-fields](certificate-fields.md)).
+  What `parse` accepts and the platform still rejects is the backend's to
+  categorize — see
   [failure category parity](../invariant/failure-category-parity.md).
 
 Input: no size bound; the decoded buffer and the PEM text are both held whole.

@@ -14,7 +14,9 @@ From the source and ADR-0002:
   platform mapping.
 - `test/failure_category_parity_test.dart` drives `failureFromWinError` and
   `failureFromOSStatus` (`@visibleForTesting`) from one table of conditions on
-  every host, and fails while a category is neither in the table nor exempted.
+  every host, fails while a category other than `unknown` has no row, and
+  checks each Windows `CRYPT_E_ASN1_*` value against the input/non-input
+  split.
 - `test/windows_ffi_symbols_test.dart` and `test/macos_ffi_symbols_test.dart`
   (`@TestOn`) resolve every binding. Windows iterates `windowsBindings` (see
   [windows-store](windows-store.md)) and calls `GetLastError`; macOS lists its
@@ -51,3 +53,4 @@ From the source and ADR-0002:
 ## Known holes / open
 - No test reaches a certificate store; `example/integration_test/` is run by no CI job (ADR-0002).
 - [macos-trust](macos-trust.md) is untested.
+- The Windows last-error test (`a failed wincrypt call reports a non-zero Win32 error`) stays green with `ensureBindingsResolved`'s list read removed, on `windows-latest` (CI run 40066712623, 2026-10-24), so it no longer reproduces the clobber it guards against. It does fail when the reported Win32 value is 0 (run 40066976069).

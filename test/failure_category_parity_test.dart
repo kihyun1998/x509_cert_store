@@ -34,13 +34,41 @@ const List<Condition> conditions = [
     osStatus: errSecAuthFailed,
     category: X509ErrorCode.accessDenied,
   ),
+  (
+    name: 'the platform cannot decode the certificate',
+    winError: 0x8009310B, // CRYPT_E_ASN1_BADTAG
+    osStatus: errSecDecode,
+    category: X509ErrorCode.invalidFormat,
+  ),
 ];
 
-/// Categories with no native counterpart on every platform.
-///
-/// `invalidFormat` is reported for both platforms by the public API, before
-/// either backend runs; only macOS also has a native code for it.
-const Set<X509ErrorCode> rejectedAboveTheSeam = {X509ErrorCode.invalidFormat};
+/// The `CRYPT_E_ASN1_*` values whose `winerror.h` message describes malformed
+/// input, by name.
+const Map<String, int> asn1MalformedInput = {
+  'CRYPT_E_ASN1_EOD': 0x80093102,
+  'CRYPT_E_ASN1_CORRUPT': 0x80093103,
+  'CRYPT_E_ASN1_LARGE': 0x80093104,
+  'CRYPT_E_ASN1_CONSTRAINT': 0x80093105,
+  'CRYPT_E_ASN1_BADREAL': 0x8009310A,
+  'CRYPT_E_ASN1_BADTAG': 0x8009310B,
+  'CRYPT_E_ASN1_CHOICE': 0x8009310C,
+  'CRYPT_E_ASN1_RULE': 0x8009310D,
+  'CRYPT_E_ASN1_UTF8': 0x8009310E,
+  'CRYPT_E_ASN1_NOEOD': 0x80093202,
+};
+
+/// The other `CRYPT_E_ASN1_*` values, which do not describe the input.
+const Map<String, int> asn1NotInput = {
+  'CRYPT_E_ASN1_ERROR': 0x80093100,
+  'CRYPT_E_ASN1_INTERNAL': 0x80093101,
+  'CRYPT_E_ASN1_MEMORY': 0x80093106,
+  'CRYPT_E_ASN1_OVERFLOW': 0x80093107,
+  'CRYPT_E_ASN1_BADPDU': 0x80093108,
+  'CRYPT_E_ASN1_BADARGS': 0x80093109,
+  'CRYPT_E_ASN1_PDU_TYPE': 0x80093133,
+  'CRYPT_E_ASN1_NYI': 0x80093134,
+  'CRYPT_E_ASN1_EXTENDED': 0x80093201,
+};
 
 void main() {
   group('both platforms put the same condition in the same category', () {
@@ -57,25 +85,35 @@ void main() {
     }
   });
 
-  test('every category is mapped on both platforms or rejected above the seam',
-      () {
+  test('every category but unknown is mapped on both platforms', () {
     final covered = {
       for (final condition in conditions) condition.category,
-      ...rejectedAboveTheSeam,
       X509ErrorCode.unknown,
     };
     expect(covered, containsAll(X509ErrorCode.values));
   });
 
-  test('errSecDecode is invalidFormat with no native code', () {
-    final failure = failureFromOSStatus(errSecDecode);
-    expect(failure.code, X509ErrorCode.invalidFormat);
-    expect(failure.nativeCode, isNull);
+  group('Windows ASN.1 errors', () {
+    for (final MapEntry(key: name, value: code) in asn1MalformedInput.entries) {
+      test('$name is invalidFormat', () {
+        final failure = failureFromWinError('op', code);
+        expect(failure.code, X509ErrorCode.invalidFormat);
+        expect(failure.nativeCode, isNull);
+      });
+    }
+
+    for (final MapEntry(key: name, value: code) in asn1NotInput.entries) {
+      test('$name stays unknown', () {
+        final failure = failureFromWinError('op', code);
+        expect(failure.code, X509ErrorCode.unknown);
+        expect(failure.nativeCode, code);
+      });
+    }
   });
 
   group('an unmapped code is unknown and keeps the code', () {
     test('Windows', () {
-      const unmapped = 0x80093102; // CRYPT_E_ASN1_BADTAG
+      const unmapped = 0x80093106; // CRYPT_E_ASN1_MEMORY
       final failure = failureFromWinError('op', unmapped);
       expect(failure.code, X509ErrorCode.unknown);
       expect(failure.nativeCode, unmapped);

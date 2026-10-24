@@ -54,11 +54,13 @@ void _lastErrorSurvivesTheCallBoundary() {
 
     expect(result, isA<X509Failure>());
     final failure = result as X509Failure;
-    // The specific crypt error varies across Windows versions; zero is the
-    // bug, and it is what an unresolved binding produces.
-    expect(failure.nativeCode, isNotNull);
-    expect(failure.nativeCode, isNot(0),
+    // The specific crypt error varies across Windows versions, and a mapped
+    // one carries no nativeCode, so the value is read from the message; zero
+    // is the bug, and it is what an unresolved binding produces.
+    final winError =
+        RegExp(r'Win32 error (\d+)').firstMatch(failure.msg)?.group(1);
+    expect(winError, isNotNull, reason: failure.msg);
+    expect(int.parse(winError!), isNot(0),
         reason: 'GetLastError was clobbered before Dart could read it');
-    expect(failure.msg, contains('Win32 error'));
   });
 }

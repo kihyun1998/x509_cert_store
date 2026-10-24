@@ -108,6 +108,9 @@ X509Failure failureFromWinError(String message, int winError) {
 }
 
 X509ErrorCode _categoryFromWinError(int code) {
+  if (cryptEAsn1MalformedInput.contains(code)) {
+    return X509ErrorCode.invalidFormat;
+  }
   switch (code) {
     case cryptEExists:
       return X509ErrorCode.alreadyExist;
