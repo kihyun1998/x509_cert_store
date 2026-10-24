@@ -8,7 +8,7 @@ A Dart package for Windows and macOS desktop applications that enables adding X.
 
 - Add certificates to the Windows certificate store and macOS Keychain
 - **Certificate trust settings support** - Optionally configure certificates as trusted (macOS only) using `setTrusted` parameter
-- Support for multiple store locations (ROOT, MY) on Windows and macOS Keychain stores
+- Support for the ROOT and MY stores on Windows; on macOS the store name selects how the certificate is trusted
 - Various certificate addition types:
   - Add new certificates only
   - Add newer versions of certificates
@@ -47,7 +47,7 @@ dart pub add x509_cert_store    # or: flutter pub add x509_cert_store
 
 ### macOS Setup
 
-To use this plugin on macOS, you need to configure the entitlements properly:
+To use this package on macOS, you need to configure the entitlements properly:
 
 1. **Disable App Sandbox** in your `macos/Runner/*.entitlements` files (DebugProfile.entitlements, Release.entitlements):
 
@@ -141,7 +141,7 @@ Returned by `addCertificate`. Either `X509Success` (no fields) or `X509Failure` 
 
 - `code: X509ErrorCode` — cross-platform error category
 - `msg: String` — human-readable failure description
-- `nativeCode: int?` — raw native error code; populated for failures bucketed as `X509ErrorCode.unknown` so consumers can diagnose unmapped errors
+- `nativeCode: int?` — raw native error code; set only for `X509ErrorCode.unknown`, when a platform call returned a code no category maps. It is null for every other category, and for an `unknown` that did not come from a native code (an unsupported platform, a failed allocation, an unexpected exception)
 
 ### X509ErrorCode (enum)
 
@@ -151,7 +151,7 @@ Cross-platform error categories. Each maps from one or more platform-specific na
 - `alreadyExist` — The certificate already exists in the store
 - `accessDenied` — Operation denied for permission reasons (e.g. admin privileges required for the ROOT store)
 - `invalidFormat` — Certificate data could not be parsed (PEM/DER format issue or decode failure)
-- `unknown` — Native error that did not map to any other category; inspect `X509Failure.nativeCode` for the raw value
+- `unknown` — A failure that maps to no other category; when it came from a native error code, `X509Failure.nativeCode` holds the raw value
 
 ## Platform-specific Behavior
 
@@ -182,7 +182,7 @@ On Windows, certificates are added to the Windows Certificate Store according to
 Check the `/example` folder for a complete implementation demonstrating:
 - Adding certificates with different addition types
 - Proper error handling
-- Creating certificate files from base64 strings
+- Loading a certificate file and encoding it as base64
 - Platform-specific configurations
 
 ## Notes for Developers
