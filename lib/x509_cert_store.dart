@@ -31,7 +31,7 @@
 ///
 /// - Windows (wincrypt certificate store)
 /// - macOS (Keychain Services)
-library x509_cert_store;
+library;
 
 // Export all public APIs
 export 'src/x509_cert_store.dart';
