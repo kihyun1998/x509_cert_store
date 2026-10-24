@@ -124,7 +124,6 @@ const int _certStoreAddNewer = 6;
 /// certificate the Security framework accepts.
 Pointer<Void> _createCertificate(Uint8List der) {
   final data = _createData(der);
-  if (data == nullptr) return nullptr;
   try {
     return secCertificateCreateWithData(nullptr, data);
   } finally {
@@ -141,7 +140,6 @@ Pointer<Void> _findByIdentity(CertificateFields target) {
     [kSecClass, kSecMatchLimit, kSecReturnRef],
     [kSecClassCertificate, kSecMatchLimitAll, kCFBooleanTrue],
   );
-  if (query == nullptr) return nullptr;
 
   final resultPtr = calloc<Pointer<Void>>();
   try {
@@ -195,7 +193,6 @@ int _addCertificate(Pointer<Void> certificate) {
     [kSecClass, kSecValueRef, kSecAttrAccessible],
     [kSecClassCertificate, certificate, kSecAttrAccessibleAfterFirstUnlock],
   );
-  if (query == nullptr) return errSecDecode;
   try {
     return secItemAdd(query, nullptr);
   } finally {
@@ -208,7 +205,6 @@ int _deleteCertificate(Pointer<Void> certificate) {
     [kSecClass, kSecValueRef],
     [kSecClassCertificate, certificate],
   );
-  if (query == nullptr) return errSecDecode;
   try {
     return secItemDelete(query);
   } finally {
@@ -218,11 +214,14 @@ int _deleteCertificate(Pointer<Void> certificate) {
 
 /// Copies [bytes] into a `CFDataRef`. CFDataCreate copies the buffer, so the
 /// native allocation is freed before returning.
+///
+/// Throws a [StateError] when CoreFoundation cannot allocate it, as `calloc`
+/// throws for its own allocations.
 Pointer<Void> _createData(Uint8List bytes) {
   final buffer = calloc<Uint8>(bytes.length);
   try {
     buffer.asTypedList(bytes.length).setAll(0, bytes);
-    return cfDataCreate(nullptr, buffer, bytes.length);
+    return _allocated(cfDataCreate(nullptr, buffer, bytes.length), 'CFData');
   } finally {
     calloc.free(buffer);
   }
@@ -230,6 +229,8 @@ Pointer<Void> _createData(Uint8List bytes) {
 
 /// Builds a `CFDictionaryRef` with CFType key and value callbacks, so the
 /// dictionary retains its entries for its own lifetime.
+///
+/// Throws a [StateError] when CoreFoundation cannot allocate it.
 Pointer<Void> _createDictionary(
   List<Pointer<Void>> keys,
   List<Pointer<Void>> values,
@@ -243,18 +244,29 @@ Pointer<Void> _createDictionary(
       keysArray[i] = keys[i];
       valuesArray[i] = values[i];
     }
-    return cfDictionaryCreate(
-      nullptr,
-      keysArray,
-      valuesArray,
-      count,
-      kCFTypeDictionaryKeyCallBacks,
-      kCFTypeDictionaryValueCallBacks,
+    return _allocated(
+      cfDictionaryCreate(
+        nullptr,
+        keysArray,
+        valuesArray,
+        count,
+        kCFTypeDictionaryKeyCallBacks,
+        kCFTypeDictionaryValueCallBacks,
+      ),
+      'CFDictionary',
     );
   } finally {
     calloc.free(keysArray);
     calloc.free(valuesArray);
   }
+}
+
+/// Returns [object], or throws a [StateError] naming [type] when it is NULL.
+Pointer<Void> _allocated(Pointer<Void> object, String type) {
+  if (object == nullptr) {
+    throw StateError('CoreFoundation could not allocate a $type');
+  }
+  return object;
 }
 
 /// Builds a failure from an `OSStatus`, preserving the raw value only for the
