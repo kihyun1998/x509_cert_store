@@ -21,9 +21,7 @@ version.
   exclusion removed (2026-10-23).
 - `README.md`, `CHANGELOG.md`, `MIGRATION.md`, `LICENSE` ship. Library
   doc-comments ship as the pub.dev API docs.
-- A published version renders the `CHANGELOG.md` in its own tarball, so a
-  published entry can be superseded but never rewritten (old thegraph build,
-  2026-09-03).
+- Before a release, run `pub-ready`.
 - `.github/dependabot.yml` raises the root's constraints with
   `increase-if-necessary`, one PR per dependency. The root commits no
   lockfile, so a PR opens only when a release falls outside the caret — at
